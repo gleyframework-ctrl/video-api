@@ -12,8 +12,8 @@ import io
 # ==========================================
 # These are set in Railway → Variables
 # DO NOT hardcode keys in this file!
-NVIDIA_API_KEY = os.environ["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"]
-CARTESIA_API_KEY = os.environ["sk_car_QbJ96RfAkcYc1qpdo5AarS"]
+NVIDIA_API_KEY = os.environ["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"]
+CARTESIA_API_KEY = os.environ["sk_car_SvzBq8wZyZ2jE12aHGnift"]
 CARTESIA_VOICE_ID = os.environ["aee2a343-ab30-430a-b50d-34eaec3dfba6"]
 
 
