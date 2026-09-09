@@ -1,12 +1,19 @@
 import os
+import shutil
 import uuid
 import json
 import subprocess
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+import time
+from pathlib import Path
 
-app = FastAPI(title="AI Video Generator API", version="1.0.0")
+app = FastAPI(
+    title="AI Video Generator API",
+    description="Convert PDF slides to videos with cloned voice",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,16 +40,23 @@ def run_pipeline(pdf_path: str, job_id: str):
         cmd = ["python", script_path, pdf_path, output_video]
         with open(status_file, "w") as f:
             json.dump({"status": "generating", "progress": 50}, f)
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             raise Exception(f"Pipeline failed: {result.stderr}")
         if not os.path.exists(output_video):
             raise Exception("Video file was not created")
         with open(status_file, "w") as f:
-            json.dump({"status": "completed", "video_url": f"/download/{job_id}/final_video.mp4", "progress": 100}, f)
+            json.dump({
+                "status": "completed",
+                "video_url": f"/download/{job_id}/final_video.mp4",
+                "progress": 100
+            }, f)
     except Exception as e:
         with open(status_file, "w") as f:
-            json.dump({"status": "failed", "error": str(e)}, f)
+            json.dump({
+                "status": "failed",
+                "error": str(e)
+            }, f)
 
 @app.post("/upload")
 async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
@@ -51,9 +65,15 @@ async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(
     job_id = str(uuid.uuid4())[:8]
     pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
     with open(pdf_path, "wb") as f:
-        f.write(await file.read())
+        content = await file.read()
+        f.write(content)
     background_tasks.add_task(run_pipeline, pdf_path, job_id)
-    return JSONResponse({"job_id": job_id, "status": "processing", "status_url": f"/status/{job_id}"})
+    return JSONResponse({
+        "job_id": job_id,
+        "status": "processing",
+        "message": "Video generation started",
+        "status_url": f"/status/{job_id}"
+    })
 
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
@@ -61,18 +81,31 @@ async def get_status(job_id: str):
     if not os.path.exists(status_file):
         raise HTTPException(status_code=404, detail="Job not found")
     with open(status_file, "r") as f:
-        return JSONResponse(json.load(f))
+        status = json.load(f)
+    return JSONResponse(status)
 
 @app.get("/download/{job_id}/final_video.mp4")
 async def download_video(job_id: str):
     video_path = f"{OUTPUT_DIR}/{job_id}/final_video.mp4"
     if not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video not found")
-    return FileResponse(video_path, media_type="video/mp4", filename=f"video_{job_id}.mp4")
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        filename=f"video_{job_id}.mp4"
+    )
 
 @app.get("/")
 async def root():
-    return {"service": "AI Video Generator API", "status": "running"}
+    return {
+        "service": "AI Video Generator API",
+        "status": "running",
+        "endpoints": {
+            "upload": "POST /upload",
+            "status": "GET /status/{job_id}",
+            "download": "GET /download/{job_id}/final_video.mp4"
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn
