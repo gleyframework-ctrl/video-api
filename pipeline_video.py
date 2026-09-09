@@ -3,7 +3,9 @@ import sys
 import subprocess
 from openai import OpenAI
 import requests
-import pymupdf
+from pypdf import PdfReader
+from PIL import Image
+import io
 
 # ==========================================
 # 🔑 🔑 🔑 PASTE YOUR ACTUAL KEYS HERE 🔑 🔑 🔑
@@ -19,15 +21,32 @@ def log(msg):
 
 def pdf_to_images(pdf_path, output_folder="slides"):
     os.makedirs(output_folder, exist_ok=True)
-    doc = pymupdf.open(pdf_path)
+    reader = PdfReader(pdf_path)
     image_paths = []
-    for i, page in enumerate(doc):
-        pix = page.get_pixmap(dpi=150)
-        image_path = f"{output_folder}/slide_{i+1:02d}.png"
-        pix.save(image_path)
-        image_paths.append(image_path)
-        log(f"[OK] Saved: {image_path}")
-    doc.close()
+    
+    for i, page in enumerate(reader.pages):
+        image_found = False
+        for img in page.images:
+            try:
+                image_data = img.data
+                pil_image = Image.open(io.BytesIO(image_data))
+                image_path = f"{output_folder}/slide_{i+1:02d}.png"
+                pil_image.save(image_path)
+                image_paths.append(image_path)
+                log(f"[OK] Saved: {image_path}")
+                image_found = True
+                break
+            except Exception as e:
+                log(f"[WARNING] Could not extract image from page {i+1}: {e}")
+                continue
+        
+        if not image_found:
+            log(f"[WARNING] No image found for page {i+1}, creating placeholder")
+            img = Image.new('RGB', (800, 600), color='white')
+            image_path = f"{output_folder}/slide_{i+1:02d}.png"
+            img.save(image_path)
+            image_paths.append(image_path)
+    
     return image_paths
 
 
@@ -53,7 +72,7 @@ Use contractions. No visual cues. Output ONLY the raw spoken text.
             timeout=300,
         )
         script = completion.choices[0].message.content.strip()
-        log(f"[OK] Script: {script[:100]}...")
+        log(f"[OK] Script generated")
         return script
     except Exception as e:
         log(f"[ERROR] NVIDIA API error: {e}")
@@ -83,7 +102,7 @@ def generate_audio(script, output_path):
             log(f"[OK] Audio saved: {output_path}")
             return output_path
         else:
-            log(f"[ERROR] Cartesia error: {response.status_code} - {response.text}")
+            log(f"[ERROR] Cartesia error: {response.status_code}")
             return None
     except Exception as e:
         log(f"[ERROR] Cartesia request failed: {e}")
