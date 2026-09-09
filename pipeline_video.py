@@ -8,7 +8,7 @@ from PIL import Image
 import io
 
 # ==========================================
-# 🔑 🔑 🔑 PASTE YOUR ACTUAL KEYS HERE 🔑 🔑 🔑
+# 🔑 YOUR API KEYS
 # ==========================================
 NVIDIA_API_KEY = "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"
 CARTESIA_API_KEY = "sk_car_QbJ96RfAkcYc1qpdo5AarS"
@@ -36,8 +36,7 @@ def pdf_to_images(pdf_path, output_folder="slides"):
                 log(f"[OK] Saved: {image_path}")
                 image_found = True
                 break
-            except Exception as e:
-                log(f"[WARNING] Could not extract image from page {i+1}: {e}")
+            except:
                 continue
         
         if not image_found:
@@ -72,7 +71,7 @@ Use contractions. No visual cues. Output ONLY the raw spoken text.
             timeout=300,
         )
         script = completion.choices[0].message.content.strip()
-        log(f"[OK] Script: {script[:100]}...")
+        log(f"[OK] Script generated")
         return script
     except Exception as e:
         log(f"[ERROR] NVIDIA API error: {e}")
@@ -120,7 +119,6 @@ def get_audio_duration(audio_path):
     try:
         return float(result.stdout.strip())
     except ValueError:
-        log(f"[ERROR] Failed to parse duration")
         return 10.0
 
 
