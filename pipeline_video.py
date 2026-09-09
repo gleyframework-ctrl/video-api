@@ -72,7 +72,7 @@ Use contractions. No visual cues. Output ONLY the raw spoken text.
             timeout=300,
         )
         script = completion.choices[0].message.content.strip()
-        log(f"[OK] Script generated")
+        log(f"[OK] Script: {script[:100]}...")
         return script
     except Exception as e:
         log(f"[ERROR] NVIDIA API error: {e}")
