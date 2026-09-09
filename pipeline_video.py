@@ -8,9 +8,9 @@ from PIL import Image
 import io
 
 # 🔑 API KEYS - Read from Environment Variables
-NVIDIA_API_KEY = os.environ.get("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")
-CARTESIA_API_KEY = os.environ.get("sk_car_QbJ96RfAkcYc1qpdo5AarS")
-CARTESIA_VOICE_ID = os.environ.get("aee2a343-ab30-430a-b50d-34eaec3dfba6")
+NVIDIA_API_KEY = os.environ.get("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")
+CARTESIA_API_KEY = os.environ.get("aee2a343-ab30-430a-b50d-34eaec3dfba6")
+CARTESIA_VOICE_ID = os.environ.get("sk_car_j1AAGoyVXQF5pZ7W4zvydX")
 
 if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
     raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
