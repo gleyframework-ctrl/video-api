@@ -8,8 +8,8 @@ from PIL import Image
 import io
 
 # 🔑 API KEYS - Read from Environment Variables
-NVIDIA_API_KEY = os.environ.get("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")
-CARTESIA_API_KEY = os.environ.get("sk_car_SvzBq8wZyZ2jE12aHGnift")
+NVIDIA_API_KEY = os.environ.get("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")
+CARTESIA_API_KEY = os.environ.get("sk_car_QbJ96RfAkcYc1qpdo5AarS")
 CARTESIA_VOICE_ID = os.environ.get("aee2a343-ab30-430a-b50d-34eaec3dfba6")
 
 if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
