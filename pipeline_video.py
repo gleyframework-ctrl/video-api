@@ -8,22 +8,13 @@ from pypdf import PdfReader
 from PIL import Image
 import io
 
-
-def _get_nvidia_key():
-    key = os.environ.get("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")
-    if not key:
-        raise ValueError("NVIDIA_API_KEY is not set in the environment.")
-    return key
-
-
-def _get_cartesia_key():
-    key = os.environ.get("sk_car_zwPdY15SHsdViiBtzVoTXR")
-    if not key:
-        raise ValueError("CARTESIA_API_KEY is not set in the environment.")
-    return key
-
-
+# 🔑 API KEYS - Read from Environment Variables (CORRECT!)
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
+CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
 CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
+
+if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
+    raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
 
 
 def log(msg):
@@ -75,7 +66,7 @@ def extract_text_from_slide(pdf_path, slide_index):
 
 def generate_script(slide_text):
     log("[AI] Writing script with NVIDIA Llama 3.2...")
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=_get_nvidia_key())
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
     prompt = f"""
 You are an expert video scriptwriter.
 Audience: Entrepreneurs. Tone: Energetic and conversational.
@@ -104,7 +95,7 @@ def generate_audio(script, output_path):
     url = "https://api.cartesia.ai/tts/bytes"
     headers = {
         "Cartesia-Version": "2024-06-10",
-        "X-API-Key": _get_cartesia_key(),
+        "X-API-Key": CARTESIA_API_KEY,
         "Content-Type": "application/json",
     }
     payload = {
