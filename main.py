@@ -57,7 +57,8 @@ def _read_config(output_folder):
         return json.load(f)
 
 
-def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str, cartesia_api_key: str, cartesia_voice_id: str):
+def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str,
+                 cartesia_api_key: str, cartesia_voice_id: str):
     output_folder = f"{OUTPUT_DIR}/{job_id}"
     os.makedirs(output_folder, exist_ok=True)
     output_video = f"{output_folder}/final_video.mp4"
@@ -75,16 +76,18 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str, cartesia_
             _update_status(status_file, "processing", 0)
             _update_status(status_file, "generating", 50)
             
-            # 1. Run the pipeline (ignore the return value)
+            # Run the pipeline
             pipeline_video.run_auto(
-                pdf_path, output_video, output_folder, 
-                language=language, cartesia_api_key=cartesia_api_key, cartesia_voice_id=cartesia_voice_id
+                pdf_path, output_video, output_folder,
+                language=language,
+                cartesia_api_key=cartesia_api_key,
+                cartesia_voice_id=cartesia_voice_id
             )
             
-            # 2. Wait for file system to sync (CRITICAL FIX)
+            # Wait for file system to sync
             time.sleep(2)
             
-            # 3. Just check if the file exists (CRITICAL FIX)
+            # Just check if file exists - don't rely on return value
             if not os.path.exists(output_video):
                 raise Exception(f"Video file was not created at {output_video}")
             
@@ -106,7 +109,6 @@ def run_render(job_id: str):
     try:
         _update_status(status_file, "rendering", 60)
         
-        # 1. Run the render phase
         pipeline_video.phase_render(
             output_folder, output_video,
             cartesia_api_key=cfg.get("cartesia_api_key"),
@@ -114,13 +116,12 @@ def run_render(job_id: str):
             language=cfg.get("language", "en"),
         )
         
-        # 2. Wait for file system to sync (CRITICAL FIX)
+        # Wait for file system to sync
         time.sleep(2)
         
-        # 3. Just check if the file exists (CRITICAL FIX)
         if not os.path.exists(output_video):
             raise Exception(f"Video file was not created at {output_video}")
-            
+        
         _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
         log(f"Job {job_id} render completed!")
     except Exception as e:
@@ -137,6 +138,9 @@ async def upload_pdf(
     cartesia_api_key: str = Form(None),
     cartesia_voice_id: str = Form(None),
 ):
+    """AI-driven flow: app extracts the PDF, writes the script, clones the voice.
+    language: ISO code, e.g. 'en' or 'ar'. cartesia_api_key/voice_id: optional — pass to use
+    the customer's own Cartesia account instead of the platform's shared one."""
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     if mode not in ("auto", "review"):
@@ -152,7 +156,8 @@ async def upload_pdf(
             f.write(await file.read())
         _write_config(output_folder, language, cartesia_api_key, cartesia_voice_id)
         log(f"Uploaded: {job_id}.pdf (mode={mode}, language={language})")
-        background_tasks.add_task(run_pipeline, pdf_path, job_id, mode, language, cartesia_api_key, cartesia_voice_id)
+        background_tasks.add_task(run_pipeline, pdf_path, job_id, mode, language,
+                                   cartesia_api_key, cartesia_voice_id)
         return JSONResponse({
             "job_id": job_id,
             "status": "processing",
@@ -175,13 +180,19 @@ async def upload_manual(
     cartesia_api_key: str = Form(None),
     cartesia_voice_id: str = Form(None),
 ):
+    """Customer-driven flow: customer supplies their own slide images and their own
+    script per slide. The app only clones the voice and assembles the video — no PDF
+    parsing, no NVIDIA script generation."""
     try:
         script_list = json.loads(scripts)
     except Exception:
         raise HTTPException(status_code=400, detail="scripts must be a JSON array of strings")
     
     if not isinstance(script_list, list) or len(script_list) != len(slides):
-        raise HTTPException(status_code=400, detail="Number of slides must match number of scripts")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Got {len(slides)} slide image(s) but {len(script_list) if isinstance(script_list, list) else 'invalid'} script(s) — counts must match"
+        )
 
     job_id = str(uuid.uuid4())[:8]
     output_folder = f"{OUTPUT_DIR}/{job_id}"
@@ -222,7 +233,7 @@ async def get_status(job_id: str):
 async def get_script(job_id: str):
     scripts_file = f"{OUTPUT_DIR}/{job_id}/scripts.json"
     if not os.path.exists(scripts_file):
-        raise HTTPException(status_code=404, detail="No scripts found for this job")
+        raise HTTPException(status_code=404, detail="No scripts found for this job (wrong mode, or not ready yet)")
     with open(scripts_file, "r") as f:
         return JSONResponse(json.load(f))
 
@@ -283,6 +294,7 @@ async def delete_job(job_id: str):
 
 @app.get("/debug/env")
 async def debug_env():
+    # Temporary — remove before real customers use this.
     return {
         "nvidia_key_present": bool(os.environ.get("NVIDIA_API_KEY")),
         "cartesia_key_present": bool(os.environ.get("CARTESIA_API_KEY")),
