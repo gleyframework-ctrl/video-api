@@ -7,8 +7,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, F
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-import pipeline_video  # direct import — no subprocess, shares this process's environment
+import pipeline_video
 
 app = FastAPI(
     title="AI Video Generator API",
@@ -57,9 +56,13 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str):
         else:
             _update_status(status_file, "processing", 0)
             _update_status(status_file, "generating", 50)
-            ok = pipeline_video.run_auto(pdf_path, output_video, output_folder)
-            if not ok or not os.path.exists(output_video):
-                raise Exception("Video generation failed")
+            # Run the pipeline
+            pipeline_video.run_auto(pdf_path, output_video, output_folder)
+            
+            # Check if video was created - don't rely on return value
+            if not os.path.exists(output_video) or os.path.getsize(output_video) == 0:
+                raise Exception("Video file was not created or is empty")
+                
             _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
             log(f"Job {job_id} completed successfully!")
 
@@ -75,9 +78,9 @@ def run_render(job_id: str):
     status_file = f"{output_folder}/status.json"
     try:
         _update_status(status_file, "rendering", 60)
-        ok = pipeline_video.phase_render(output_folder, output_video)
-        if not ok or not os.path.exists(output_video):
-            raise Exception("Render failed")
+        pipeline_video.phase_render(output_folder, output_video)
+        if not os.path.exists(output_video) or os.path.getsize(output_video) == 0:
+            raise Exception("Video file was not created or is empty")
         _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
         log(f"Job {job_id} render completed!")
     except Exception as e:
@@ -186,17 +189,6 @@ async def delete_job(job_id: str):
         os.remove(pdf_file)
         deleted += 1
     return JSONResponse({"message": f"Deleted {deleted} items", "job_id": job_id})
-
-
-@app.get("/debug/env")
-async def debug_env():
-    # Temporary endpoint to prove, from inside THIS process, whether the keys are visible.
-    # Remove this once the review-mode flow is confirmed working — it should never ship long-term.
-    return {
-        "nvidia_key_present": bool(os.environ.get("NVIDIA_API_KEY")),
-        "cartesia_key_present": bool(os.environ.get("CARTESIA_API_KEY")),
-        "cartesia_voice_id_present": bool(os.environ.get("CARTESIA_VOICE_ID")),
-    }
 
 
 @app.get("/")
