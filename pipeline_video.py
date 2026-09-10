@@ -8,13 +8,28 @@ from pypdf import PdfReader
 from PIL import Image
 import io
 
-# 🔑 API KEYS - Read from Environment Variables (CORRECT!)
-NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
-CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
+
+def _get_nvidia_key():
+    key = os.environ.get("NVIDIA_API_KEY")
+    if not key:
+        raise ValueError("NVIDIA_API_KEY is not set in the environment.")
+    return key
+
+
+def _get_cartesia_key():
+    key = os.environ.get("CARTESIA_API_KEY")
+    if not key:
+        raise ValueError("CARTESIA_API_KEY is not set in the environment.")
+    return key
+
+
 CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
 
-if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
-    raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
+LANGUAGE_NAMES = {
+    "en": "English", "ar": "Arabic", "fr": "French", "es": "Spanish",
+    "de": "German", "pt": "Portuguese", "zh": "Chinese", "ja": "Japanese",
+    "ko": "Korean", "hi": "Hindi", "tr": "Turkish",
+}
 
 
 def log(msg):
@@ -64,22 +79,23 @@ def extract_text_from_slide(pdf_path, slide_index):
     return f"Slide {slide_index + 1}"
 
 
-def generate_script(slide_text):
+def generate_script(slide_text, language="en"):
     log("[AI] Writing script with NVIDIA Llama 3.2...")
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=_get_nvidia_key())
+    lang_name = LANGUAGE_NAMES.get(language, language)
     prompt = f"""
 You are an expert video scriptwriter.
 Audience: Entrepreneurs. Tone: Energetic and conversational.
 Slide content: "{slide_text}"
-Task: Write a short, engaging spoken script (max 80 words).
-Use contractions. No visual cues. Output ONLY the raw spoken text.
+Task: Write a short, engaging spoken script (max 80 words), in {lang_name}.
+Use natural, spoken phrasing appropriate for {lang_name}. No visual cues. Output ONLY the raw spoken text.
 """
     try:
         completion = client.chat.completions.create(
             model="meta/llama-3.2-11b-vision-instruct",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=200,
+            max_tokens=300,
             timeout=300,
         )
         script = completion.choices[0].message.content.strip()
@@ -90,20 +106,24 @@ Use contractions. No visual cues. Output ONLY the raw spoken text.
         return None
 
 
-def generate_audio(script, output_path):
+def generate_audio(script, output_path, api_key=None, voice_id=None, language="en"):
     log("[AUDIO] Generating cloned voice audio with Cartesia...")
     url = "https://api.cartesia.ai/tts/bytes"
+    key = api_key or _get_cartesia_key()
+    voice = voice_id or CARTESIA_VOICE_ID
     headers = {
         "Cartesia-Version": "2024-06-10",
-        "X-API-Key": CARTESIA_API_KEY,
+        "X-API-Key": key,
         "Content-Type": "application/json",
     }
     payload = {
-        "model_id": "sonic-2",
-        "voice": {"mode": "id", "id": CARTESIA_VOICE_ID},
+        # sonic-3 required for Arabic and most non-English languages — sonic-2 only covers
+        # en/fr/de/es/pt/zh/ja/ko and does NOT include Arabic.
+        "model_id": "sonic-3",
+        "voice": {"mode": "id", "id": voice},
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
-        "language": "en",
+        "language": language,
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=60)
@@ -113,7 +133,7 @@ def generate_audio(script, output_path):
             log(f"[OK] Audio saved: {output_path}")
             return output_path
         else:
-            log(f"[ERROR] Cartesia error: {response.status_code}")
+            log(f"[ERROR] Cartesia error: {response.status_code} - {response.text}")
             return None
     except Exception as e:
         log(f"[ERROR] Cartesia request failed: {e}")
@@ -155,14 +175,14 @@ def concat_clips(clip_paths, output_path):
     return output_path
 
 
-def phase_script(pdf_path, job_dir):
-    """Phase 1: extract slide images + generate scripts, persist to scripts.json"""
+def phase_script(pdf_path, job_dir, language="en"):
+    """Phase 1 (auto/review modes): extract slide images + AI-generate scripts."""
     slides_folder = f"{job_dir}/slides"
     image_paths = pdf_to_images(pdf_path, slides_folder)
     scripts_data = []
     for i, img_path in enumerate(image_paths, 1):
         slide_text = extract_text_from_slide(pdf_path, i - 1)
-        script = generate_script(slide_text)
+        script = generate_script(slide_text, language=language)
         if not script:
             script = f"Let's take a look at slide {i}."
         scripts_data.append({"index": i, "image": img_path, "script": script})
@@ -173,8 +193,9 @@ def phase_script(pdf_path, job_dir):
     return True
 
 
-def phase_render(job_dir, output_video):
-    """Phase 2: turn scripts.json (possibly customer-edited) into the final video"""
+def phase_render(job_dir, output_video, cartesia_api_key=None, cartesia_voice_id=None, language="en"):
+    """Phase 2 (all modes): turn scripts.json (AI-written, edited, or fully customer-supplied)
+    into the final video. Doesn't care how the scripts got there."""
     with open(f"{job_dir}/scripts.json", "r") as f:
         scripts_data = json.load(f)
 
@@ -187,7 +208,8 @@ def phase_render(job_dir, output_video):
     for entry in scripts_data:
         i, script, image_path = entry["index"], entry["script"], entry["image"]
         audio_path = f"{temp_audio_dir}/slide_{i:02d}.mp3"
-        audio_file = generate_audio(script, audio_path)
+        audio_file = generate_audio(script, audio_path, api_key=cartesia_api_key,
+                                     voice_id=cartesia_voice_id, language=language)
         if not audio_file:
             log(f"[WARN] Slide {i} audio failed, skipping")
             continue
@@ -206,11 +228,12 @@ def phase_render(job_dir, output_video):
     return bool(final and os.path.exists(final))
 
 
-def run_auto(pdf_path, output_video, job_dir):
-    """Backward-compatible: current one-click flow, script + render together"""
-    if not phase_script(pdf_path, job_dir):
+def run_auto(pdf_path, output_video, job_dir, language="en", cartesia_api_key=None, cartesia_voice_id=None):
+    """One-click flow: AI script + AI voice, in one go."""
+    if not phase_script(pdf_path, job_dir, language=language):
         return False
-    return phase_render(job_dir, output_video)
+    return phase_render(job_dir, output_video, cartesia_api_key=cartesia_api_key,
+                         cartesia_voice_id=cartesia_voice_id, language=language)
 
 
 if __name__ == "__main__":
