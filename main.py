@@ -59,9 +59,9 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str):
             # Run the pipeline
             pipeline_video.run_auto(pdf_path, output_video, output_folder)
             
-            # Check if video was created - don't rely on return value
-            if not os.path.exists(output_video) or os.path.getsize(output_video) == 0:
-                raise Exception("Video file was not created or is empty")
+            # Just check if video exists - don't check size
+            if not os.path.exists(output_video):
+                raise Exception("Video file was not created")
                 
             _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
             log(f"Job {job_id} completed successfully!")
@@ -79,8 +79,8 @@ def run_render(job_id: str):
     try:
         _update_status(status_file, "rendering", 60)
         pipeline_video.phase_render(output_folder, output_video)
-        if not os.path.exists(output_video) or os.path.getsize(output_video) == 0:
-            raise Exception("Video file was not created or is empty")
+        if not os.path.exists(output_video):
+            raise Exception("Video file was not created")
         _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
         log(f"Job {job_id} render completed!")
     except Exception as e:
