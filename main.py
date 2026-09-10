@@ -1,17 +1,19 @@
 import os
 import uuid
 import json
-import subprocess
+import traceback
 from typing import List
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+import pipeline_video  # direct import — no subprocess, shares this process's environment
+
 app = FastAPI(
     title="AI Video Generator API",
     description="Convert PDF slides to videos with cloned voice narration",
-    version="3.0.0"
+    version="3.1.0"
 )
 
 app.add_middleware(
@@ -32,10 +34,6 @@ def log(msg):
     print(f"[API] {msg}")
 
 
-def _script_path():
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline_video.py")
-
-
 def _update_status(status_file, status: str, progress: int = 0, **kwargs):
     data = {"status": status, "progress": progress, **kwargs}
     with open(status_file, "w") as f:
@@ -49,35 +47,26 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str):
     status_file = f"{output_folder}/status.json"
 
     try:
-        script_path = _script_path()
-        if not os.path.exists(script_path):
-            raise Exception(f"Pipeline script not found: {script_path}")
-
         if mode == "review":
             _update_status(status_file, "generating_scripts", 20)
-            cmd = ["python", script_path, "script", pdf_path, output_folder]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            if result.returncode != 0:
-                raise Exception(f"Script generation failed: {result.stderr}")
+            ok = pipeline_video.phase_script(pdf_path, output_folder)
+            if not ok:
+                raise Exception("Script generation failed")
             _update_status(status_file, "awaiting_review", 50, script_url=f"/script/{job_id}")
             log(f"Job {job_id}: awaiting customer script review")
         else:
             _update_status(status_file, "processing", 0)
             _update_status(status_file, "generating", 50)
-            cmd = ["python", script_path, "auto", pdf_path, output_video, output_folder]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-            if result.returncode != 0:
-                raise Exception(f"Pipeline failed: {result.stderr}")
-            if not os.path.exists(output_video):
-                raise Exception("Video file was not created")
+            ok = pipeline_video.run_auto(pdf_path, output_video, output_folder)
+            if not ok or not os.path.exists(output_video):
+                raise Exception("Video generation failed")
             _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
             log(f"Job {job_id} completed successfully!")
 
-    except subprocess.TimeoutExpired:
-        _update_status(status_file, "failed", 0, error="Pipeline timed out")
     except Exception as e:
+        error_detail = f"{e}\n{traceback.format_exc()}"
         _update_status(status_file, "failed", 0, error=str(e))
-        log(f"Job {job_id} failed: {e}")
+        log(f"Job {job_id} failed: {error_detail}")
 
 
 def run_render(job_id: str):
@@ -86,16 +75,11 @@ def run_render(job_id: str):
     status_file = f"{output_folder}/status.json"
     try:
         _update_status(status_file, "rendering", 60)
-        cmd = ["python", _script_path(), "render", output_folder, output_video]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        if result.returncode != 0:
-            raise Exception(f"Render failed: {result.stderr}")
-        if not os.path.exists(output_video):
-            raise Exception("Video file was not created")
+        ok = pipeline_video.phase_render(output_folder, output_video)
+        if not ok or not os.path.exists(output_video):
+            raise Exception("Render failed")
         _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
         log(f"Job {job_id} render completed!")
-    except subprocess.TimeoutExpired:
-        _update_status(status_file, "failed", 0, error="Render timed out")
     except Exception as e:
         _update_status(status_file, "failed", 0, error=str(e))
         log(f"Job {job_id} render failed: {e}")
@@ -204,11 +188,22 @@ async def delete_job(job_id: str):
     return JSONResponse({"message": f"Deleted {deleted} items", "job_id": job_id})
 
 
+@app.get("/debug/env")
+async def debug_env():
+    # Temporary endpoint to prove, from inside THIS process, whether the keys are visible.
+    # Remove this once the review-mode flow is confirmed working — it should never ship long-term.
+    return {
+        "nvidia_key_present": bool(os.environ.get("NVIDIA_API_KEY")),
+        "cartesia_key_present": bool(os.environ.get("CARTESIA_API_KEY")),
+        "cartesia_voice_id_present": bool(os.environ.get("CARTESIA_VOICE_ID")),
+    }
+
+
 @app.get("/")
 async def root():
     return {
         "service": "AI Video Generator API",
-        "version": "3.0.0",
+        "version": "3.1.0",
         "status": "running",
         "endpoints": {
             "upload": "POST /upload (form field: mode=auto|review)",
