@@ -52,9 +52,10 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str):
             # Run the pipeline
             pipeline_video.run_auto(pdf_path, output_video, output_folder, language=language)
             
-            # FIX: Wait for file system to sync in Docker/Railway
+            # Wait for file system to sync
             time.sleep(3)
             
+            # Check if file exists
             if not os.path.exists(output_video):
                 raise Exception(f"Video file was not created at {output_video}")
             
@@ -75,7 +76,7 @@ def run_render(job_id: str):
         _update_status(status_file, "rendering", 60)
         pipeline_video.phase_render(output_folder, output_video, language=cfg.get("language", "en"))
         
-        # FIX: Wait for file system to sync
+        # Wait for file system to sync
         time.sleep(3)
         
         if not os.path.exists(output_video):
@@ -189,9 +190,30 @@ async def delete_job(job_id: str):
     if os.path.exists(pdf_file): os.remove(pdf_file); deleted += 1
     return JSONResponse({"message": f"Deleted {deleted} items", "job_id": job_id})
 
+@app.get("/debug/env")
+async def debug_env():
+    return {
+        "nvidia_key_present": bool(os.environ.get("NVIDIA_API_KEY")),
+        "cartesia_key_present": bool(os.environ.get("CARTESIA_API_KEY")),
+        "cartesia_voice_id_present": bool(os.environ.get("CARTESIA_VOICE_ID")),
+    }
+
 @app.get("/")
 async def root():
-    return {"service": "AI Video Generator API", "version": "4.1.0", "status": "running"}
+    return {
+        "service": "AI Video Generator API",
+        "version": "4.1.0",
+        "status": "running",
+        "endpoints": {
+            "upload": "POST /upload (PDF, mode=auto|review, language)",
+            "upload_manual": "POST /upload-manual (slides[], scripts=JSON array, language)",
+            "status": "GET /status/{job_id}",
+            "get_scripts": "GET /script/{job_id}",
+            "submit_scripts": "POST /script/{job_id}",
+            "download": "GET /download/{job_id}/final_video.mp4",
+            "delete": "DELETE /job/{job_id}"
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn
