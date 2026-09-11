@@ -8,17 +8,13 @@ from pypdf import PdfReader
 from PIL import Image
 import io
 
-def _get_nvidia_key():
-    key = os.environ.get("NVIDIA_API_KEY")
-    if not key: raise ValueError("NVIDIA_API_KEY is not set.")
-    return key
-
-def _get_cartesia_key():
-    key = os.environ.get("CARTESIA_API_KEY")
-    if not key: raise ValueError("CARTESIA_API_KEY is not set.")
-    return key
-
+# CRITICAL FIX: Read the VARIABLE NAME, not the value
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
+CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
 CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
+
+if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
+    raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
 
 def log(msg):
     print(msg)
@@ -61,9 +57,9 @@ def extract_text_from_slide(pdf_path, slide_index):
     return f"Slide {slide_index + 1}"
 
 def generate_script(slide_text, language="en"):
-    log("[AI] Writing script...")
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=_get_nvidia_key())
-    prompt = f"Write a short, engaging spoken script (max 80 words) in {language} for this slide content: \"{slide_text}\". Output ONLY the raw spoken text."
+    log(f"[AI] Writing script in {language}...")
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
+    prompt = f"Write a short, engaging spoken script (max 80 words) in {language} for this slide content: '{slide_text}'. Output ONLY the raw spoken text."
     try:
         completion = client.chat.completions.create(model="meta/llama-3.2-11b-vision-instruct", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=300, timeout=300)
         script = completion.choices[0].message.content.strip()
@@ -76,7 +72,7 @@ def generate_script(slide_text, language="en"):
 def generate_audio(script, output_path, language="en"):
     log("[AUDIO] Generating voice...")
     url = "https://api.cartesia.ai/tts/bytes"
-    headers = {"Cartesia-Version": "2024-06-10", "X-API-Key": _get_cartesia_key(), "Content-Type": "application/json"}
+    headers = {"Cartesia-Version": "2024-06-10", "X-API-Key": CARTESIA_API_KEY, "Content-Type": "application/json"}
     payload = {
         "model_id": "sonic-3", # sonic-3 supports Arabic and more languages
         "voice": {"mode": "id", "id": CARTESIA_VOICE_ID},
