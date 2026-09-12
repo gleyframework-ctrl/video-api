@@ -25,10 +25,12 @@ def log(msg):
     print(f"[API] {msg}")
 
 def _update_status(status_file, status: str, progress: int = 0, **kwargs):
-    with open(status_file, "w") as f: json.dump({"status": status, "progress": progress, **kwargs}, f)
+    with open(status_file, "w") as f:
+        json.dump({"status": status, "progress": progress, **kwargs}, f)
 
 def _write_config(output_folder, language):
-    with open(f"{output_folder}/config.json", "w") as f: json.dump({"language": language}, f)
+    with open(f"{output_folder}/config.json", "w") as f:
+        json.dump({"language": language}, f)
 
 def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str):
     output_folder = f"{OUTPUT_DIR}/{job_id}"
@@ -103,13 +105,15 @@ async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(
     os.makedirs(output_folder, exist_ok=True)
 
     try:
-        with open(pdf_path, "wb") as f: f.write(await file.read())
+        with open(pdf_path, "wb") as f:
+            f.write(await file.read())
         _write_config(output_folder, language)
         log(f"Uploaded: {job_id}.pdf (mode={mode}, language={language})")
         background_tasks.add_task(run_pipeline, pdf_path, job_id, mode, language)
         return JSONResponse({"job_id": job_id, "status": "processing", "status_url": f"/status/{job_id}"})
     except Exception as e:
-        if os.path.exists(pdf_path): os.remove(pdf_path)
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/upload-manual")
@@ -131,10 +135,12 @@ async def upload_manual(background_tasks: BackgroundTasks, slides: List[UploadFi
     for i, (slide_file, script_text) in enumerate(zip(slides, script_list), 1):
         ext = os.path.splitext(slide_file.filename or "")[1] or ".png"
         image_path = f"{slides_folder}/slide_{i:02d}{ext}"
-        with open(image_path, "wb") as f: f.write(await slide_file.read())
+        with open(image_path, "wb") as f:
+            f.write(await slide_file.read())
         scripts_data.append({"index": i, "image": image_path, "script": script_text})
 
-    with open(f"{output_folder}/scripts.json", "w") as f: json.dump(scripts_data, f)
+    with open(f"{output_folder}/scripts.json", "w") as f:
+        json.dump(scripts_data, f)
     _write_config(output_folder, language)
 
     status_file = f"{output_folder}/status.json"
@@ -147,14 +153,18 @@ async def upload_manual(background_tasks: BackgroundTasks, slides: List[UploadFi
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
     status_file = f"{OUTPUT_DIR}/{job_id}/status.json"
-    if not os.path.exists(status_file): raise HTTPException(status_code=404, detail="Job not found")
-    with open(status_file, "r") as f: return JSONResponse(json.load(f))
+    if not os.path.exists(status_file):
+        raise HTTPException(status_code=404, detail="Job not found")
+    with open(status_file, "r") as f:
+        return JSONResponse(json.load(f))
 
 @app.get("/script/{job_id}")
 async def get_script(job_id: str):
     scripts_file = f"{OUTPUT_DIR}/{job_id}/scripts.json"
-    if not os.path.exists(scripts_file): raise HTTPException(status_code=404, detail="No scripts found")
-    with open(scripts_file, "r") as f: return JSONResponse(json.load(f))
+    if not os.path.exists(scripts_file):
+        raise HTTPException(status_code=404, detail="No scripts found")
+    with open(scripts_file, "r") as f:
+        return JSONResponse(json.load(f))
 
 class SlideScript(BaseModel):
     index: int
@@ -167,21 +177,26 @@ class ScriptSubmission(BaseModel):
 async def submit_script(job_id: str, submission: ScriptSubmission, background_tasks: BackgroundTasks):
     output_folder = f"{OUTPUT_DIR}/{job_id}"
     scripts_file = f"{output_folder}/scripts.json"
-    if not os.path.exists(scripts_file): raise HTTPException(status_code=404, detail="Job not found")
+    if not os.path.exists(scripts_file):
+        raise HTTPException(status_code=404, detail="Job not found")
 
-    with open(scripts_file, "r") as f: scripts_data = json.load(f)
+    with open(scripts_file, "r") as f:
+        scripts_data = json.load(f)
     edits = {s.index: s.script for s in submission.scripts}
     for entry in scripts_data:
-        if entry["index"] in edits: entry["script"] = edits[entry["index"]]
+        if entry["index"] in edits:
+            entry["script"] = edits[entry["index"]]
 
-    with open(scripts_file, "w") as f: json.dump(scripts_data, f)
+    with open(scripts_file, "w") as f:
+        json.dump(scripts_data, f)
     background_tasks.add_task(run_render, job_id)
     return JSONResponse({"job_id": job_id, "status": "rendering", "status_url": f"/status/{job_id}"})
 
 @app.get("/download/{job_id}/final_video.mp4")
 async def download_video(job_id: str):
     video_path = f"{OUTPUT_DIR}/{job_id}/final_video.mp4"
-    if not os.path.exists(video_path): raise HTTPException(status_code=404, detail="Video not found")
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Video not found")
     return FileResponse(video_path, media_type="video/mp4", filename=f"video_{job_id}.mp4")
 
 @app.delete("/job/{job_id}")
@@ -190,8 +205,12 @@ async def delete_job(job_id: str):
     job_folder = f"{OUTPUT_DIR}/{job_id}"
     pdf_file = f"{UPLOAD_DIR}/{job_id}.pdf"
     deleted = 0
-    if os.path.exists(job_folder): shutil.rmtree(job_folder); deleted += 1
-    if os.path.exists(pdf_file): os.remove(pdf_file); deleted += 1
+    if os.path.exists(job_folder):
+        shutil.rmtree(job_folder)
+        deleted += 1
+    if os.path.exists(pdf_file):
+        os.remove(pdf_file)
+        deleted += 1
     return JSONResponse({"message": f"Deleted {deleted} items", "job_id": job_id})
 
 @app.get("/")
