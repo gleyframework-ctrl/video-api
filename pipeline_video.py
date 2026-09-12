@@ -8,13 +8,18 @@ from pypdf import PdfReader
 from PIL import Image
 import io
 
-# CRITICAL FIX: Read the VARIABLE NAME, not the value
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
 CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
 CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
 
 if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
     raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
+
+LANGUAGE_NAMES = {
+    "en": "English", "ar": "Arabic", "fr": "French", "es": "Spanish",
+    "de": "German", "pt": "Portuguese", "zh": "Chinese", "ja": "Japanese",
+    "ko": "Korean", "hi": "Hindi", "tr": "Turkish",
+}
 
 def log(msg):
     print(msg)
@@ -57,11 +62,36 @@ def extract_text_from_slide(pdf_path, slide_index):
     return f"Slide {slide_index + 1}"
 
 def generate_script(slide_text, language="en"):
-    log(f"[AI] Writing script in {language}...")
+    log(f"[AI] Writing script with NVIDIA Llama 3.2 for language: {language}...")
     client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
-    prompt = f"Write a short, engaging spoken script (max 80 words) in {language} for this slide content: '{slide_text}'. Output ONLY the raw spoken text."
+    lang_name = LANGUAGE_NAMES.get(language, language)
+
+    if language == "en":
+        prompt = f"""
+You are an expert video scriptwriter.
+Audience: Entrepreneurs. Tone: Energetic and conversational.
+Slide content: "{slide_text}"
+Task: Write a short, engaging spoken script (max 80 words) in English.
+No visual cues. Output ONLY the raw spoken text.
+"""
+    else:
+        prompt = f"""
+You are an expert video scriptwriter and translator.
+The slide content below may be written in any language, including English.
+Slide content: "{slide_text}"
+Task: Write a short, engaging spoken script (max 80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
+Do NOT include any English words or the original source text — translate and adapt the meaning fully into natural, conversational {lang_name} suitable for {lang_name}-speaking entrepreneurs.
+Output ONLY the {lang_name} spoken text — no English, no notes, no explanations, nothing else.
+"""
+
     try:
-        completion = client.chat.completions.create(model="meta/llama-3.2-11b-vision-instruct", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=300, timeout=300)
+        completion = client.chat.completions.create(
+            model="meta/llama-3.2-11b-vision-instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=300,
+            timeout=300,
+        )
         script = completion.choices[0].message.content.strip()
         log("[OK] Script generated")
         return script
@@ -70,11 +100,11 @@ def generate_script(slide_text, language="en"):
         return None
 
 def generate_audio(script, output_path, language="en"):
-    log("[AUDIO] Generating voice...")
+    log("[AUDIO] Generating cloned voice audio with Cartesia...")
     url = "https://api.cartesia.ai/tts/bytes"
     headers = {"Cartesia-Version": "2024-06-10", "X-API-Key": CARTESIA_API_KEY, "Content-Type": "application/json"}
     payload = {
-        "model_id": "sonic-3", # sonic-3 supports Arabic and more languages
+        "model_id": "sonic-3",
         "voice": {"mode": "id", "id": CARTESIA_VOICE_ID},
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
