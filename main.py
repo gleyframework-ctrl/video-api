@@ -1,157 +1,203 @@
-   import os
-   import sys
-   import json
-   import subprocess
-   from openai import OpenAI
-   import requests
-   from pypdf import PdfReader
-   from PIL import Image
-   import io
+import os
+import uuid
+import json
+import traceback
+import time
+from typing import List
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import pipeline_video
 
-   NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
-   CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
-   CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
+app = FastAPI(title="AI Video Generator API", version="5.2.0")
 
-   if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
-       raise ValueError("Missing API keys!")
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+)
 
-   LANGUAGE_NAMES = {"en": "English", "ar": "Arabic", "fr": "French", "es": "Spanish", "de": "German", "pt": "Portuguese", "zh": "Chinese", "ja": "Japanese", "ko": "Korean", "hi": "Hindi", "tr": "Turkish"}
+UPLOAD_DIR = "uploads"
+OUTPUT_DIR = "outputs"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-   def log(msg):
-       print(msg)
-       sys.stdout.flush()
+def log(msg):
+    print(f"[API] {msg}")
 
-   def pdf_to_images(pdf_path, output_folder):
-       os.makedirs(output_folder, exist_ok=True)
-       reader = PdfReader(pdf_path)
-       image_paths = []
-       for i, page in enumerate(reader.pages):
-           image_found = False
-           for img in page.images:
-               try:
-                   pil_image = Image.open(io.BytesIO(img.data))
-                   if pil_image.mode != 'RGB': pil_image = pil_image.convert('RGB')
-                   image_path = f"{output_folder}/slide_{i+1:02d}.png"
-                   pil_image.save(image_path, "PNG")
-                   image_paths.append(image_path)
-                   log(f"[OK] Extracted: {image_path}")
-                   image_found = True
-                   break
-               except Exception as e:
-                   log(f"[WARN] Failed to extract image {i+1}: {e}")
-           if not image_found:
-               log(f"[WARN] No image on page {i+1}, creating placeholder")
-               img = Image.new('RGB', (1920, 1080), color=(255, 255, 255))
-               image_path = f"{output_folder}/slide_{i+1:02d}.png"
-               img.save(image_path, "PNG")
-               image_paths.append(image_path)
-       return image_paths
+def _update_status(status_file, status: str, progress: int = 0, **kwargs):
+    with open(status_file, "w") as f: json.dump({"status": status, "progress": progress, **kwargs}, f)
 
-   def extract_text_from_slide(pdf_path, slide_index):
-       try:
-           reader = PdfReader(pdf_path)
-           if slide_index < len(reader.pages):
-               text = reader.pages[slide_index].extract_text()
-               return text.strip() if text else f"Slide {slide_index + 1}"
-       except Exception as e:
-           log(f"[WARN] Could not extract text: {e}")
-       return f"Slide {slide_index + 1}"
+def _write_config(output_folder, language):
+    with open(f"{output_folder}/config.json", "w") as f: json.dump({"language": language}, f)
 
-   def generate_script(slide_text, language="en"):
-       log(f"[AI] Writing script for language: {language}...")
-       client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
-       lang_name = LANGUAGE_NAMES.get(language, language)
-       if language == "en":
-           prompt = f"You are an expert video scriptwriter. Audience: Entrepreneurs. Tone: Energetic, conversational. PACING: Natural, measured delivery. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE: Clear, concise sentences (8-12 words). Natural pauses. No visual cues. Output ONLY the raw spoken text."
-       else:
-           prompt = f"You are an expert video scriptwriter and translator. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name} script/alphabet. STYLE: Clear, concise sentences. Comfortable delivery speed. No complex words. No visual cues. Do NOT include any English words. Output ONLY the {lang_name} spoken text."
-       try:
-           completion = client.chat.completions.create(model="meta/llama-3.2-11b-vision-instruct", messages=[{"role": "user", "content": prompt}], temperature=0.7, max_tokens=300, timeout=300)
-           script = completion.choices[0].message.content.strip()
-           log("[OK] Script generated")
-           return script
-       except Exception as e:
-           log(f"[ERROR] NVIDIA API error: {e}")
-           return None
+def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str):
+    output_folder = f"{OUTPUT_DIR}/{job_id}"
+    os.makedirs(output_folder, exist_ok=True)
+    output_video = f"{output_folder}/final_video.mp4"
+    status_file = f"{output_folder}/status.json"
 
-   def generate_audio(script, output_path, language="en"):
-       log("[AUDIO] Generating cloned voice audio with Cartesia...")
-       url = "https://api.cartesia.ai/tts/bytes"
-       headers = {"Cartesia-Version": "2024-06-10", "X-API-Key": CARTESIA_API_KEY, "Content-Type": "application/json"}
-       payload = {"model_id": "sonic-3", "voice": {"mode": "id", "id": CARTESIA_VOICE_ID}, "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100}, "transcript": script, "language": language}
-       try:
-           response = requests.post(url, json=payload, headers=headers, timeout=60)
-           if response.status_code == 200:
-               with open(output_path, "wb") as f: f.write(response.content)
-               log(f"[OK] Audio saved: {output_path}")
-               return output_path
-           else:
-               log(f"[ERROR] Cartesia error: {response.status_code} - {response.text}")
-               return None
-       except Exception as e:
-           log(f"[ERROR] Cartesia request failed: {e}")
-           return None
+    try:
+        if mode == "review":
+            _update_status(status_file, "generating_scripts", 20)
+            pipeline_video.phase_script(pdf_path, output_folder, language=language)
+            _update_status(status_file, "awaiting_review", 50, script_url=f"/script/{job_id}")
+        else:
+            _update_status(status_file, "processing", 0)
+            _update_status(status_file, "generating", 50)
+            
+            pipeline_video.run_auto(pdf_path, output_video, output_folder, language=language)
+            
+            log("Pipeline finished. Waiting for file system sync...")
+            file_found = False
+            for attempt in range(15):
+                if os.path.exists(output_video) and os.path.getsize(output_video) > 1000:
+                    file_found = True
+                    break
+                log(f"File not found yet, retrying in 2s (attempt {attempt + 1}/15)")
+                time.sleep(2)
+                
+            if not file_found:
+                raise Exception(f"Video file was not created at {output_video} after waiting.")
+            
+            _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
+            log(f"Job {job_id} completed successfully!")
 
-   def get_audio_duration(audio_path):
-       cmd = ["ffprobe", "-v", "error", "-show_entries", "format=", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", audio_path]
-       result = subprocess.run(cmd, capture_output=True, text=True)
-       try: return float(result.stdout.strip())
-       except ValueError: return 10.0
+    except Exception as e:
+        _update_status(status_file, "failed", 0, error=str(e))
+        log(f"Job {job_id} failed: {e}\n{traceback.format_exc()}")
 
-   def create_clip(image_path, audio_path, duration, output_path):
-       duration = max(duration, 0.5)
-       cmd = ["ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path, "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-t", str(duration + 0.5), "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path]
-       result = subprocess.run(cmd, text=True)
-       if result.returncode != 0: log(f"[ERROR] FFmpeg clip creation failed for {output_path}")
-       else: log(f"[OK] Clip saved: {output_path}")
-       return output_path if os.path.exists(output_path) else None
+def run_render(job_id: str):
+    output_folder = f"{OUTPUT_DIR}/{job_id}"
+    output_video = f"{output_folder}/final_video.mp4"
+    status_file = f"{output_folder}/status.json"
+    
+    try:
+        _update_status(status_file, "rendering", 60)
+        pipeline_video.phase_render(output_folder, output_video, language="en")
+        
+        log("Render finished. Waiting for file system sync...")
+        file_found = False
+        for attempt in range(15):
+            if os.path.exists(output_video) and os.path.getsize(output_video) > 1000:
+                file_found = True
+                break
+            time.sleep(2)
+            
+        if not file_found:
+            raise Exception(f"Video file was not created at {output_video} after waiting.")
+            
+        _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
+        log(f"Job {job_id} render completed!")
+    except Exception as e:
+        _update_status(status_file, "failed", 0, error=str(e))
+        log(f"Job {job_id} render failed: {e}")
 
-   def concat_clips(clip_paths, output_path):
-       list_path = "filelist.txt"
-       with open(list_path, "w") as f:
-           for clip in clip_paths: f.write(f"file '{clip}'\n")
-       cmd = ["ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path, "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-y", output_path]
-       result = subprocess.run(cmd, text=True)
-       os.remove(list_path)
-       if result.returncode != 0: log(f"[ERROR] FFmpeg concat failed.")
-       else: log(f"[OK] Final video created: {output_path}")
-       return result.returncode == 0
+@app.post("/upload")
+async def upload_pdf(background_tasks: BackgroundTasks, file: UploadFile = File(...), mode: str = Form("auto"), language: str = Form("en")):
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    job_id = str(uuid.uuid4())[:8]
+    pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
+    output_folder = f"{OUTPUT_DIR}/{job_id}"
+    os.makedirs(output_folder, exist_ok=True)
 
-   def phase_script(pdf_path, job_dir, language="en"):
-       slides_folder = f"{job_dir}/slides"
-       image_paths = pdf_to_images(pdf_path, slides_folder)
-       scripts_data = []
-       for i, img_path in enumerate(image_paths, 1):
-           slide_text = extract_text_from_slide(pdf_path, i - 1)
-           script = generate_script(slide_text, language=language)
-           if not script: script = f"Let's take a look at slide {i}."
-           scripts_data.append({"index": i, "image": img_path, "script": script})
-       with open(f"{job_dir}/scripts.json", "w") as f: json.dump(scripts_data, f)
-       log(f"[OK] {len(scripts_data)} scripts saved")
-       return True
+    try:
+        with open(pdf_path, "wb") as f: f.write(await file.read())
+        _write_config(output_folder, language)
+        log(f"Uploaded: {job_id}.pdf (mode={mode}, language={language})")
+        background_tasks.add_task(run_pipeline, pdf_path, job_id, mode, language)
+        return JSONResponse({"job_id": job_id, "status": "processing", "status_url": f"/status/{job_id}"})
+    except Exception as e:
+        if os.path.exists(pdf_path): os.remove(pdf_path)
+        raise HTTPException(status_code=500, detail=str(e))
 
-   def phase_render(job_dir, output_video, language="en"):
-       with open(f"{job_dir}/scripts.json", "r") as f: scripts_data = json.load(f)
-       temp_audio_dir = f"{job_dir}/temp_audio"
-       temp_clips_dir = f"{job_dir}/temp_clips"
-       os.makedirs(temp_audio_dir, exist_ok=True)
-       os.makedirs(temp_clips_dir, exist_ok=True)
-       clips = []
-       for entry in scripts_data:
-           i, script, image_path = entry["index"], entry["script"], entry["image"]
-           audio_path = f"{temp_audio_dir}/slide_{i:02d}.mp3"
-           audio_file = generate_audio(script, audio_path, language=language)
-           if not audio_file: continue
-           duration = get_audio_duration(audio_file)
-           clip_path = f"{temp_clips_dir}/clip_{i:02d}.mp4"
-           clip = create_clip(image_path, audio_file, duration, clip_path)
-           if clip: clips.append(clip)
-       if not clips:
-           log("[ERROR] No clips created")
-           return False
-       os.makedirs(os.path.dirname(output_video) or ".", exist_ok=True)
-       return concat_clips(clips, output_video)
+@app.post("/upload-manual")
+async def upload_manual(background_tasks: BackgroundTasks, slides: List[UploadFile] = File(...), scripts: str = Form(...), language: str = Form("en")):
+    try:
+        script_list = json.loads(scripts)
+    except Exception:
+        raise HTTPException(status_code=400, detail="scripts must be a JSON array of strings")
+    
+    if not isinstance(script_list, list) or len(script_list) != len(slides):
+        raise HTTPException(status_code=400, detail="Number of slides must match number of scripts")
 
-   def run_auto(pdf_path, output_video, job_dir, language="en"):
-       if not phase_script(pdf_path, job_dir, language=language): return False
-       return phase_render(job_dir, output_video, language=language)
+    job_id = str(uuid.uuid4())[:8]
+    output_folder = f"{OUTPUT_DIR}/{job_id}"
+    slides_folder = f"{output_folder}/slides"
+    os.makedirs(slides_folder, exist_ok=True)
+
+    scripts_data = []
+    for i, (slide_file, script_text) in enumerate(zip(slides, script_list), 1):
+        ext = os.path.splitext(slide_file.filename or "")[1] or ".png"
+        image_path = f"{slides_folder}/slide_{i:02d}{ext}"
+        with open(image_path, "wb") as f: f.write(await slide_file.read())
+        scripts_data.append({"index": i, "image": image_path, "script": script_text})
+
+    with open(f"{output_folder}/scripts.json", "w") as f: json.dump(scripts_data, f)
+    _write_config(output_folder, language)
+
+    status_file = f"{output_folder}/status.json"
+    _update_status(status_file, "rendering", 60)
+    log(f"Uploaded manual job: {job_id}")
+    background_tasks.add_task(run_render, job_id)
+
+    return JSONResponse({"job_id": job_id, "status": "rendering", "status_url": f"/status/{job_id}"})
+
+@app.get("/status/{job_id}")
+async def get_status(job_id: str):
+    status_file = f"{OUTPUT_DIR}/{job_id}/status.json"
+    if not os.path.exists(status_file): raise HTTPException(status_code=404, detail="Job not found")
+    with open(status_file, "r") as f: return JSONResponse(json.load(f))
+
+@app.get("/script/{job_id}")
+async def get_script(job_id: str):
+    scripts_file = f"{OUTPUT_DIR}/{job_id}/scripts.json"
+    if not os.path.exists(scripts_file): raise HTTPException(status_code=404, detail="No scripts found")
+    with open(scripts_file, "r") as f: return JSONResponse(json.load(f))
+
+class SlideScript(BaseModel):
+    index: int
+    script: str
+
+class ScriptSubmission(BaseModel):
+    scripts: List[SlideScript]
+
+@app.post("/script/{job_id}")
+async def submit_script(job_id: str, submission: ScriptSubmission, background_tasks: BackgroundTasks):
+    output_folder = f"{OUTPUT_DIR}/{job_id}"
+    scripts_file = f"{output_folder}/scripts.json"
+    if not os.path.exists(scripts_file): raise HTTPException(status_code=404, detail="Job not found")
+
+    with open(scripts_file, "r") as f: scripts_data = json.load(f)
+    edits = {s.index: s.script for s in submission.scripts}
+    for entry in scripts_data:
+        if entry["index"] in edits: entry["script"] = edits[entry["index"]]
+
+    with open(scripts_file, "w") as f: json.dump(scripts_data, f)
+    background_tasks.add_task(run_render, job_id)
+    return JSONResponse({"job_id": job_id, "status": "rendering", "status_url": f"/status/{job_id}"})
+
+@app.get("/download/{job_id}/final_video.mp4")
+async def download_video(job_id: str):
+    video_path = f"{OUTPUT_DIR}/{job_id}/final_video.mp4"
+    if not os.path.exists(video_path): raise HTTPException(status_code=404, detail="Video not found")
+    return FileResponse(video_path, media_type="video/mp4", filename=f"video_{job_id}.mp4")
+
+@app.delete("/job/{job_id}")
+async def delete_job(job_id: str):
+    import shutil
+    job_folder = f"{OUTPUT_DIR}/{job_id}"
+    pdf_file = f"{UPLOAD_DIR}/{job_id}.pdf"
+    deleted = 0
+    if os.path.exists(job_folder): shutil.rmtree(job_folder); deleted += 1
+    if os.path.exists(pdf_file): os.remove(pdf_file); deleted += 1
+    return JSONResponse({"message": f"Deleted {deleted} items", "job_id": job_id})
+
+@app.get("/")
+async def root():
+    return {"service": "AI Video Generator API", "version": "5.2.0", "status": "running"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)
