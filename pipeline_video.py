@@ -107,7 +107,11 @@ STYLE REQUIREMENTS:
 - Do NOT include any English words or the original source text
 - Translate and adapt the meaning fully into natural, conversational {lang_name}
 
+<<<<<<< HEAD
 Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else.
+=======
+Output ONLY the {lang_name} spoken text — no English, no notes, no explanations, nothing else.
+>>>>>>> e4308b5c7b46a06cfd30527d95db002e85bb5b5a
 """
 
     try:
@@ -135,6 +139,7 @@ def generate_audio(script, output_path, language="en"):
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
         "language": language,
+        "speed": 1.0,
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=60)
