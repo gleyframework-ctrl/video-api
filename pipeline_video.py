@@ -10,7 +10,7 @@ import io
 
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
 CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
-CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "aee2a343-ab30-430a-b50d-34eaec3dfba6")
+CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "2a1938fe-6a4c-4fa0-86a7-dd585a5f7211")
 
 if not NVIDIA_API_KEY or not CARTESIA_API_KEY:
     raise ValueError("Missing API keys! Set NVIDIA_API_KEY and CARTESIA_API_KEY in Railway variables.")
@@ -46,7 +46,7 @@ def pdf_to_images(pdf_path, output_folder):
                 log(f"[WARN] Failed to extract image {i+1}: {e}")
         if not image_found:
             log(f"[WARN] No image on page {i+1}, creating placeholder")
-            img = Image.new('RGB', (1920, 1080), color=(255, 255, 255))
+            img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
             image_path = f"{output_folder}/slide_{i+1:02d}.png"
             img.save(image_path, "PNG")
             image_paths.append(image_path)
@@ -143,12 +143,23 @@ def create_clip(image_path, audio_path, duration, output_path):
     log(f"[CLIP] Duration: {duration}s")
     
     duration = max(duration, 0.5)
+    
+    # ULTRA-LIGHTWEIGHT FFMPEG SETTINGS FOR LOW MEMORY ENVIRONMENTS (Railway Free Tier)
     cmd = [
-        "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
-        "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
-        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
-        "-t", str(duration + 0.5), "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path
+        "ffmpeg", 
+        "-loop", "1", 
+        "-i", image_path, 
+        "-i", audio_path,
+        "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
+        "-c:v", "libx264", 
+        "-preset", "ultrafast",  # CRITICAL: Uses minimal RAM/CPU
+        "-crf", "28",             # CRITICAL: Lower quality but prevents OOM crashes
+        "-t", str(duration + 0.5), 
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-threads", "1",          # CRITICAL: Limits threads to prevent RAM spikes
+        "-shortest", "-y", output_path
     ]
     
     log(f"[CLIP] Running FFmpeg command...")
@@ -181,10 +192,19 @@ def concat_clips(clip_paths, output_path):
             f.write(f"file '{abs_clip}'\n")
             log(f"[CONCAT] Added to list: {abs_clip}")
     
+    # ULTRA-LIGHTWEIGHT FFMPEG SETTINGS FOR CONCAT
     cmd = [
-        "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
-        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
-        "-c:a", "aac", "-b:a", "192k", "-y", output_path
+        "ffmpeg", 
+        "-f", "concat", 
+        "-safe", "0", 
+        "-i", list_path,
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-crf", "28",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        "-threads", "1",
+        "-y", output_path
     ]
     
     log(f"[CONCAT] Running FFmpeg concat command...")
