@@ -1,3 +1,5 @@
+cd C:\Users\Dell\Desktop\video-api
+
 @'
 import os
 import sys
@@ -141,7 +143,6 @@ def create_clip(image_path, audio_path, duration, output_path):
         "-t", str(duration + 0.5), "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path
     ]
-    # Removed capture_output so FFmpeg logs show in Railway
     result = subprocess.run(cmd, text=True)
     if result.returncode != 0:
         log(f"[ERROR] FFmpeg clip creation failed for {output_path}")
@@ -158,7 +159,6 @@ def concat_clips(clip_paths, output_path):
         "-c:v", "libx264", "-preset", "slow", "-crf", "18",
         "-c:a", "aac", "-b:a", "192k", "-y", output_path
     ]
-    # Removed capture_output so FFmpeg logs show in Railway
     result = subprocess.run(cmd, text=True)
     os.remove(list_path)
     
@@ -214,4 +214,4 @@ def run_auto(pdf_path, output_video, job_dir, language="en"):
     return phase_render(job_dir, output_video, language=language)
 '@ | Set-Content -Path pipeline_video.py -Encoding UTF8
 
-findstr "retrying" pipeline_video.py
+python -m py_compile pipeline_video.py
