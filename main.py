@@ -7,10 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import pipeline_video
 
-app = FastAPI(title="AI Video Generator API", version="6.0.0")
+app = FastAPI(title="Video Generator API", version="6.0.0")
 
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware, 
+    allow_origins=["*"], 
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"]
 )
 
 UPLOAD_DIR = "uploads"
@@ -25,12 +29,11 @@ def log(msg):
 async def create_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    scripts: str = Form(...),  # JSON array of scripts
-    language: str = Form("en"),
-    voice_id: str = Form(None)  # Optional, uses default from env
+    scripts: str = Form(...),
+    language: str = Form("en")
 ):
     """
-    Create video from PDF + pre-written scripts
+    Create video from PDF + your pre-written scripts
     
     scripts: JSON array like ["script for slide 1", "script for slide 2", ...]
     """
@@ -60,7 +63,7 @@ async def create_video(
         os.makedirs(slides_folder, exist_ok=True)
         image_paths = pipeline_video.pdf_to_images(pdf_path, slides_folder)
         
-        # Create scripts data from user-provided scripts
+        # Create scripts data
         scripts_data = []
         for i, (img_path, script_text) in enumerate(zip(image_paths, script_list), 1):
             if i <= len(script_list):
@@ -76,14 +79,11 @@ async def create_video(
         
         # Save config
         with open(f"{output_folder}/config.json", "w") as f:
-            json.dump({
-                "language": language,
-                "voice_id": voice_id or os.environ.get("CARTESIA_VOICE_ID")
-            }, f)
+            json.dump({"language": language}, f)
         
-        log(f"Creating video: {job_id} ({len(scripts_data)} slides, language={language})")
+        log(f"Creating video: {job_id} ({len(scripts_data)} slides)")
         
-        # Start video generation in background
+        # Start video generation
         output_video = f"{output_folder}/final_video.mp4"
         background_tasks.add_task(
             pipeline_video.render_from_scripts,
@@ -122,14 +122,10 @@ async def download_video(job_id: str):
 @app.get("/")
 async def root():
     return {
-        "service": "AI Video Generator API",
+        "service": "Video Generator API",
         "version": "6.0.0",
         "status": "running",
-        "endpoints": {
-            "create_video": "POST /create-video (PDF + scripts JSON array)",
-            "status": "GET /status/{job_id}",
-            "download": "GET /download/{job_id}/final_video.mp4"
-        }
+        "endpoint": "POST /create-video"
     }
 
 if __name__ == "__main__":
