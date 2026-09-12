@@ -68,19 +68,45 @@ def generate_script(slide_text, language="en"):
 
     if language == "en":
         prompt = f"""
-You are an expert video scriptwriter.
-Audience: Entrepreneurs. Tone: Energetic and conversational.
+You are an expert video scriptwriter for professional coaching content.
+
+AUDIENCE: Entrepreneurs and business professionals
+TONE: Energetic, conversational, and authoritative
+PACING: Write for natural, measured speech delivery - not rushed, not slow
+
 Slide content: "{slide_text}"
-Task: Write a short, engaging spoken script (max 80 words) in English.
-No visual cues. Output ONLY the raw spoken text.
+
+TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English.
+
+STYLE REQUIREMENTS:
+- Use clear, concise sentences (8-12 words each)
+- Include natural pauses with short phrases
+- Avoid complex jargon or tongue-twisters
+- Write for comfortable, professional delivery speed
+- Use active voice and direct language
+- No visual cues or stage directions
+
+Output ONLY the raw spoken text - nothing else.
 """
     else:
         prompt = f"""
-You are an expert video scriptwriter and translator.
+You are an expert video scriptwriter and translator for professional coaching content.
+
 The slide content below may be written in any language, including English.
 Slide content: "{slide_text}"
-Task: Write a short, engaging spoken script (max 80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
-Do NOT include any English words or the original source text — translate and adapt the meaning fully into natural, conversational {lang_name} suitable for {lang_name}-speaking entrepreneurs.
+
+TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
+
+STYLE REQUIREMENTS:
+- Use clear, concise sentences appropriate for {lang_name}
+- Include natural pauses with short phrases
+- Write for comfortable, professional delivery speed - not rushed, not slow
+- Avoid complex words that are difficult to pronounce
+- Use active voice and direct language
+- No visual cues or stage directions
+- Do NOT include any English words or the original source text
+- Translate and adapt the meaning fully into natural, conversational {lang_name}
+
 Output ONLY the {lang_name} spoken text — no English, no notes, no explanations, nothing else.
 """
 
@@ -109,6 +135,8 @@ def generate_audio(script, output_path, language="en"):
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
         "language": language,
+        # Add speed control for consistent pacing
+        "speed": 1.0,  # Normal speed (0.5-2.0 range)
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=60)
@@ -131,7 +159,22 @@ def get_audio_duration(audio_path):
 
 def create_clip(image_path, audio_path, duration, output_path):
     duration = max(duration, 0.5)
-    cmd = ["ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path, "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-c:v", "libx264", "-t", str(duration + 0.5), "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-y", output_path]
+    # HIGH QUALITY VIDEO SETTINGS
+    cmd = [
+        "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
+        # Scale to 1080p HD
+        "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
+        # High quality H.264 encoding
+        "-c:v", "libx264",
+        "-preset", "slow",  # Better quality (slow, medium, fast)
+        "-crf", "18",  # Quality: 18-28 (lower = better, 18 is high quality)
+        "-t", str(duration + 0.5),
+        "-pix_fmt", "yuv420p",
+        # High quality audio
+        "-c:a", "aac",
+        "-b:a", "192k",  # Higher audio bitrate
+        "-shortest", "-y", output_path
+    ]
     subprocess.run(cmd, capture_output=True)
     log(f"[OK] Clip saved: {output_path}")
     return output_path
@@ -140,7 +183,16 @@ def concat_clips(clip_paths, output_path):
     list_path = "filelist.txt"
     with open(list_path, "w") as f:
         for clip in clip_paths: f.write(f"file '{clip}'\n")
-    cmd = ["ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", "-y", output_path]
+    # High quality concatenation (re-encode for consistency)
+    cmd = [
+        "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
+        "-c:v", "libx264",
+        "-preset", "slow",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-y", output_path
+    ]
     subprocess.run(cmd, capture_output=True)
     os.remove(list_path)
     log(f"[OK] Final video created: {output_path}")
