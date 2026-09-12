@@ -135,8 +135,7 @@ def generate_audio(script, output_path, language="en"):
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
         "language": language,
-        # Add speed control for consistent pacing
-        "speed": 1.0,  # Normal speed (0.5-2.0 range)
+        "speed": 1.0,
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=60)
@@ -159,20 +158,16 @@ def get_audio_duration(audio_path):
 
 def create_clip(image_path, audio_path, duration, output_path):
     duration = max(duration, 0.5)
-    # HIGH QUALITY VIDEO SETTINGS
     cmd = [
         "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
-        # Scale to 1080p HD
         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
-        # High quality H.264 encoding
         "-c:v", "libx264",
-        "-preset", "slow",  # Better quality (slow, medium, fast)
-        "-crf", "18",  # Quality: 18-28 (lower = better, 18 is high quality)
+        "-preset", "slow",
+        "-crf", "18",
         "-t", str(duration + 0.5),
         "-pix_fmt", "yuv420p",
-        # High quality audio
         "-c:a", "aac",
-        "-b:a", "192k",  # Higher audio bitrate
+        "-b:a", "192k",
         "-shortest", "-y", output_path
     ]
     subprocess.run(cmd, capture_output=True)
@@ -183,7 +178,6 @@ def concat_clips(clip_paths, output_path):
     list_path = "filelist.txt"
     with open(list_path, "w") as f:
         for clip in clip_paths: f.write(f"file '{clip}'\n")
-    # High quality concatenation (re-encode for consistency)
     cmd = [
         "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
         "-c:v", "libx264",
