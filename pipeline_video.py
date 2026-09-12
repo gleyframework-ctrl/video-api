@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import json
 import subprocess
@@ -68,20 +68,46 @@ def generate_script(slide_text, language="en"):
 
     if language == "en":
         prompt = f"""
-You are an expert video scriptwriter.
-Audience: Entrepreneurs. Tone: Energetic and conversational.
+You are an expert video scriptwriter for professional coaching content.
+
+AUDIENCE: Entrepreneurs and business professionals
+TONE: Energetic, conversational, and authoritative
+PACING: Write for natural, measured speech delivery - not rushed, not slow
+
 Slide content: "{slide_text}"
-Task: Write a short, engaging spoken script (max 80 words) in English.
-No visual cues. Output ONLY the raw spoken text.
+
+TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English.
+
+STYLE REQUIREMENTS:
+- Use clear, concise sentences (8-12 words each)
+- Include natural pauses with short phrases
+- Avoid complex jargon or tongue-twisters
+- Write for comfortable, professional delivery speed
+- Use active voice and direct language
+- No visual cues or stage directions
+
+Output ONLY the raw spoken text - nothing else.
 """
     else:
         prompt = f"""
-You are an expert video scriptwriter and translator.
+You are an expert video scriptwriter and translator for professional coaching content.
+
 The slide content below may be written in any language, including English.
 Slide content: "{slide_text}"
-Task: Write a short, engaging spoken script (max 80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
-Do NOT include any English words or the original source text — translate and adapt the meaning fully into natural, conversational {lang_name} suitable for {lang_name}-speaking entrepreneurs.
-Output ONLY the {lang_name} spoken text — no English, no notes, no explanations, nothing else.
+
+TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
+
+STYLE REQUIREMENTS:
+- Use clear, concise sentences appropriate for {lang_name}
+- Include natural pauses with short phrases
+- Write for comfortable, professional delivery speed - not rushed, not slow
+- Avoid complex words that are difficult to pronounce
+- Use active voice and direct language
+- No visual cues or stage directions
+- Do NOT include any English words or the original source text
+- Translate and adapt the meaning fully into natural, conversational {lang_name}
+
+Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else.
 """
 
     try:
@@ -131,7 +157,18 @@ def get_audio_duration(audio_path):
 
 def create_clip(image_path, audio_path, duration, output_path):
     duration = max(duration, 0.5)
-    cmd = ["ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path, "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-c:v", "libx264", "-t", str(duration + 0.5), "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-y", output_path]
+    cmd = [
+        "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
+        "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
+        "-c:v", "libx264",
+        "-preset", "slow",
+        "-crf", "18",
+        "-t", str(duration + 0.5),
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest", "-y", output_path
+    ]
     subprocess.run(cmd, capture_output=True)
     log(f"[OK] Clip saved: {output_path}")
     return output_path
@@ -140,7 +177,15 @@ def concat_clips(clip_paths, output_path):
     list_path = "filelist.txt"
     with open(list_path, "w") as f:
         for clip in clip_paths: f.write(f"file '{clip}'\n")
-    cmd = ["ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", "-y", output_path]
+    cmd = [
+        "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
+        "-c:v", "libx264",
+        "-preset", "slow",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-y", output_path
+    ]
     subprocess.run(cmd, capture_output=True)
     os.remove(list_path)
     log(f"[OK] Final video created: {output_path}")
@@ -155,7 +200,6 @@ def phase_script(pdf_path, job_dir, language="en"):
         script = generate_script(slide_text, language=language)
         if not script: script = f"Let's take a look at slide {i}."
         scripts_data.append({"index": i, "image": img_path, "script": script})
-    
     with open(f"{job_dir}/scripts.json", "w") as f: json.dump(scripts_data, f)
     log(f"[OK] {len(scripts_data)} scripts saved")
     return True
@@ -166,7 +210,6 @@ def phase_render(job_dir, output_video, language="en"):
     temp_clips_dir = f"{job_dir}/temp_clips"
     os.makedirs(temp_audio_dir, exist_ok=True)
     os.makedirs(temp_clips_dir, exist_ok=True)
-    
     clips = []
     for entry in scripts_data:
         i, script, image_path = entry["index"], entry["script"], entry["image"]
@@ -177,11 +220,9 @@ def phase_render(job_dir, output_video, language="en"):
         clip_path = f"{temp_clips_dir}/clip_{i:02d}.mp4"
         clip = create_clip(image_path, audio_file, duration, clip_path)
         if clip: clips.append(clip)
-        
     if not clips:
         log("[ERROR] No clips created")
         return False
-        
     os.makedirs(os.path.dirname(output_video) or ".", exist_ok=True)
     concat_clips(clips, output_video)
     return True
@@ -189,3 +230,23 @@ def phase_render(job_dir, output_video, language="en"):
 def run_auto(pdf_path, output_video, job_dir, language="en"):
     if not phase_script(pdf_path, job_dir, language=language): return False
     return phase_render(job_dir, output_video, language=language)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        log("Usage: python pipeline_video.py <auto|script|render> ...")
+        sys.exit(1)
+    mode = sys.argv[1]
+    try:
+        if mode == "auto":
+            success = run_auto(sys.argv[2], sys.argv[3], sys.argv[4])
+        elif mode == "script":
+            success = phase_script(sys.argv[2], sys.argv[3])
+        elif mode == "render":
+            success = phase_render(sys.argv[2], sys.argv[3])
+        else:
+            log(f"Unknown mode: {mode}")
+            sys.exit(1)
+    except Exception as e:
+        log(f"[FATAL] {e}")
+        sys.exit(1)
+    sys.exit(0 if success else 1)
