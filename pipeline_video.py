@@ -1,4 +1,5 @@
-﻿import os
+@'
+import os
 import sys
 import json
 import subprocess
@@ -69,49 +70,21 @@ def generate_script(slide_text, language="en"):
     if language == "en":
         prompt = f"""
 You are an expert video scriptwriter for professional coaching content.
-
-AUDIENCE: Entrepreneurs and business professionals
-TONE: Energetic, conversational, and authoritative
-PACING: Write for natural, measured speech delivery - not rushed, not slow
-
+AUDIENCE: Entrepreneurs and business professionals. TONE: Energetic, conversational, and authoritative.
+PACING: Write for natural, measured speech delivery - not rushed, not slow.
 Slide content: "{slide_text}"
-
 TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English.
-
-STYLE REQUIREMENTS:
-- Use clear, concise sentences (8-12 words each)
-- Include natural pauses with short phrases
-- Avoid complex jargon or tongue-twisters
-- Write for comfortable, professional delivery speed
-- Use active voice and direct language
-- No visual cues or stage directions
-
+STYLE REQUIREMENTS: Use clear, concise sentences (8-12 words each). Include natural pauses. Avoid complex jargon. Use active voice. No visual cues.
 Output ONLY the raw spoken text - nothing else.
 """
     else:
         prompt = f"""
 You are an expert video scriptwriter and translator for professional coaching content.
-
 The slide content below may be written in any language, including English.
 Slide content: "{slide_text}"
-
 TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet.
-
-STYLE REQUIREMENTS:
-- Use clear, concise sentences appropriate for {lang_name}
-- Include natural pauses with short phrases
-- Write for comfortable, professional delivery speed - not rushed, not slow
-- Avoid complex words that are difficult to pronounce
-- Use active voice and direct language
-- No visual cues or stage directions
-- Do NOT include any English words or the original source text
-- Translate and adapt the meaning fully into natural, conversational {lang_name}
-
-<<<<<<< HEAD
+STYLE REQUIREMENTS: Use clear, concise sentences appropriate for {lang_name}. Write for comfortable, professional delivery speed. Avoid complex words. Use active voice. No visual cues. Do NOT include any English words or the original source text.
 Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else.
-=======
-Output ONLY the {lang_name} spoken text — no English, no notes, no explanations, nothing else.
->>>>>>> e4308b5c7b46a06cfd30527d95db002e85bb5b5a
 """
 
     try:
@@ -139,7 +112,6 @@ def generate_audio(script, output_path, language="en"):
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
         "language": language,
-        "speed": 1.0,
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=60)
@@ -165,18 +137,17 @@ def create_clip(image_path, audio_path, duration, output_path):
     cmd = [
         "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
         "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
-        "-c:v", "libx264",
-        "-preset", "slow",
-        "-crf", "18",
-        "-t", str(duration + 0.5),
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-shortest", "-y", output_path
+        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+        "-t", str(duration + 0.5), "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path
     ]
-    subprocess.run(cmd, capture_output=True)
-    log(f"[OK] Clip saved: {output_path}")
-    return output_path
+    # Removed capture_output so FFmpeg logs show in Railway
+    result = subprocess.run(cmd, text=True)
+    if result.returncode != 0:
+        log(f"[ERROR] FFmpeg clip creation failed for {output_path}")
+    else:
+        log(f"[OK] Clip saved: {output_path}")
+    return output_path if os.path.exists(output_path) else None
 
 def concat_clips(clip_paths, output_path):
     list_path = "filelist.txt"
@@ -184,17 +155,19 @@ def concat_clips(clip_paths, output_path):
         for clip in clip_paths: f.write(f"file '{clip}'\n")
     cmd = [
         "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
-        "-c:v", "libx264",
-        "-preset", "slow",
-        "-crf", "18",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-y", output_path
+        "-c:v", "libx264", "-preset", "slow", "-crf", "18",
+        "-c:a", "aac", "-b:a", "192k", "-y", output_path
     ]
-    subprocess.run(cmd, capture_output=True)
+    # Removed capture_output so FFmpeg logs show in Railway
+    result = subprocess.run(cmd, text=True)
     os.remove(list_path)
+    
+    if result.returncode != 0:
+        log(f"[ERROR] FFmpeg concat failed. Check Railway logs for FFmpeg errors.")
+        return False
+        
     log(f"[OK] Final video created: {output_path}")
-    return output_path
+    return True
 
 def phase_script(pdf_path, job_dir, language="en"):
     slides_folder = f"{job_dir}/slides"
@@ -205,6 +178,7 @@ def phase_script(pdf_path, job_dir, language="en"):
         script = generate_script(slide_text, language=language)
         if not script: script = f"Let's take a look at slide {i}."
         scripts_data.append({"index": i, "image": img_path, "script": script})
+    
     with open(f"{job_dir}/scripts.json", "w") as f: json.dump(scripts_data, f)
     log(f"[OK] {len(scripts_data)} scripts saved")
     return True
@@ -215,6 +189,7 @@ def phase_render(job_dir, output_video, language="en"):
     temp_clips_dir = f"{job_dir}/temp_clips"
     os.makedirs(temp_audio_dir, exist_ok=True)
     os.makedirs(temp_clips_dir, exist_ok=True)
+    
     clips = []
     for entry in scripts_data:
         i, script, image_path = entry["index"], entry["script"], entry["image"]
@@ -225,33 +200,18 @@ def phase_render(job_dir, output_video, language="en"):
         clip_path = f"{temp_clips_dir}/clip_{i:02d}.mp4"
         clip = create_clip(image_path, audio_file, duration, clip_path)
         if clip: clips.append(clip)
+        
     if not clips:
         log("[ERROR] No clips created")
         return False
+        
     os.makedirs(os.path.dirname(output_video) or ".", exist_ok=True)
-    concat_clips(clips, output_video)
-    return True
+    success = concat_clips(clips, output_video)
+    return success
 
 def run_auto(pdf_path, output_video, job_dir, language="en"):
     if not phase_script(pdf_path, job_dir, language=language): return False
     return phase_render(job_dir, output_video, language=language)
+'@ | Set-Content -Path pipeline_video.py -Encoding UTF8
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        log("Usage: python pipeline_video.py <auto|script|render> ...")
-        sys.exit(1)
-    mode = sys.argv[1]
-    try:
-        if mode == "auto":
-            success = run_auto(sys.argv[2], sys.argv[3], sys.argv[4])
-        elif mode == "script":
-            success = phase_script(sys.argv[2], sys.argv[3])
-        elif mode == "render":
-            success = phase_render(sys.argv[2], sys.argv[3])
-        else:
-            log(f"Unknown mode: {mode}")
-            sys.exit(1)
-    except Exception as e:
-        log(f"[FATAL] {e}")
-        sys.exit(1)
-    sys.exit(0 if success else 1)
+findstr "retrying" pipeline_video.py
