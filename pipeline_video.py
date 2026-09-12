@@ -67,9 +67,9 @@ def generate_script(slide_text, language="en"):
     lang_name = LANGUAGE_NAMES.get(language, language)
 
     if language == "en":
-        prompt = f"""You are an expert video scriptwriter. AUDIENCE: Entrepreneurs. TONE: Energetic, conversational. PACING: Natural, measured delivery. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE: Clear, concise sentences (8-12 words). Natural pauses. No visual cues. Output ONLY the raw spoken text."""
+        prompt = f"""You are an expert video scriptwriter for professional coaching content. AUDIENCE: Entrepreneurs and business professionals. TONE: Energetic, conversational, and authoritative. PACING: Write for natural, measured speech delivery - not rushed, not slow. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE REQUIREMENTS: Use clear, concise sentences (8-12 words each). Include natural pauses. Avoid complex jargon. Use active voice. No visual cues. Output ONLY the raw spoken text - nothing else."""
     else:
-        prompt = f"""You are an expert video scriptwriter and translator. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name} script/alphabet. STYLE: Clear, concise sentences. Comfortable delivery speed. No complex words. No visual cues. Do NOT include any English words. Output ONLY the {lang_name} spoken text."""
+        prompt = f"""You are an expert video scriptwriter and translator for professional coaching content. The slide content below may be written in any language, including English. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet. STYLE REQUIREMENTS: Use clear, concise sentences appropriate for {lang_name}. Write for comfortable, professional delivery speed. Avoid complex words. Use active voice. No visual cues. Do NOT include any English words or the original source text. Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else."""
 
     try:
         completion = client.chat.completions.create(
@@ -125,31 +125,57 @@ def create_clip(image_path, audio_path, duration, output_path):
         "-t", str(duration + 0.5), "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path
     ]
-    result = subprocess.run(cmd, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        log(f"[ERROR] FFmpeg clip creation failed for {output_path}")
+        log(f"[ERROR] FFmpeg clip creation failed: {result.stderr}")
+        return None
     else:
         log(f"[OK] Clip saved: {output_path}")
-    return output_path if os.path.exists(output_path) else None
+        return output_path if os.path.exists(output_path) else None
 
 def concat_clips(clip_paths, output_path):
-    list_path = "filelist.txt"
+    # CRITICAL FIX: Create filelist.txt in the SAME directory as output
+    output_dir = os.path.dirname(output_path)
+    os.makedirs(output_dir, exist_ok=True)
+    list_path = os.path.join(output_dir, "filelist.txt")
+    
+    log(f"[CONCAT] Creating filelist at: {list_path}")
+    log(f"[CONCAT] Clips to concatenate: {clip_paths}")
+    
     with open(list_path, "w") as f:
-        for clip in clip_paths: f.write(f"file '{clip}'\n")
+        for clip in clip_paths:
+            # Use absolute paths
+            abs_clip = os.path.abspath(clip)
+            f.write(f"file '{abs_clip}'\n")
+            log(f"[CONCAT] Added to list: {abs_clip}")
+    
     cmd = [
         "ffmpeg", "-f", "concat", "-safe", "0", "-i", list_path,
         "-c:v", "libx264", "-preset", "slow", "-crf", "18",
         "-c:a", "aac", "-b:a", "192k", "-y", output_path
     ]
-    result = subprocess.run(cmd, text=True)
-    os.remove(list_path)
+    
+    log(f"[CONCAT] Running FFmpeg concat command...")
+    result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        log(f"[ERROR] FFmpeg concat failed.")
+        log(f"[ERROR] FFmpeg concat failed: {result.stderr}")
+        if os.path.exists(list_path):
+            os.remove(list_path)
         return False
-        
-    log(f"[OK] Final video created: {output_path}")
-    return True
+    
+    # CRITICAL FIX: Verify the file was actually created
+    if os.path.exists(output_path):
+        file_size = os.path.getsize(output_path)
+        log(f"[OK] Final video created: {output_path} (size: {file_size} bytes)")
+        if os.path.exists(list_path):
+            os.remove(list_path)
+        return True
+    else:
+        log(f"[ERROR] FFmpeg reported success but file not found at: {output_path}")
+        if os.path.exists(list_path):
+            os.remove(list_path)
+        return False
 
 def phase_script(pdf_path, job_dir, language="en"):
     slides_folder = f"{job_dir}/slides"
@@ -186,9 +212,15 @@ def phase_render(job_dir, output_video, language="en"):
     if not clips:
         log("[ERROR] No clips created")
         return False
-        
-    os.makedirs(os.path.dirname(output_video) or ".", exist_ok=True)
+    
+    log(f"[RENDER] Starting concat of {len(clips)} clips...")
     success = concat_clips(clips, output_video)
+    
+    if success:
+        log(f"[RENDER] Video generation completed successfully!")
+    else:
+        log(f"[RENDER] Video generation failed!")
+    
     return success
 
 def run_auto(pdf_path, output_video, job_dir, language="en"):
