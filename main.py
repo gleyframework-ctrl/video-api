@@ -1,4 +1,4 @@
-﻿import os
+import os
 import uuid
 import json
 import traceback
@@ -46,7 +46,6 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str):
             
             pipeline_video.run_auto(pdf_path, output_video, output_folder, language=language)
             
-            # ROBUST CHECK: Wait for Docker file system sync
             log("Pipeline finished. Waiting for file system sync...")
             file_found = False
             for attempt in range(15):
@@ -73,7 +72,7 @@ def run_render(job_id: str):
     
     try:
         _update_status(status_file, "rendering", 60)
-        pipeline_video.phase_render(output_folder, output_video, language="en") # Default, config can be added
+        pipeline_video.phase_render(output_folder, output_video, language="en")
         
         log("Render finished. Waiting for file system sync...")
         file_found = False
