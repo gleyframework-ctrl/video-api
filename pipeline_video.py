@@ -1,6 +1,3 @@
-cd C:\Users\Dell\Desktop\video-api
-
-@'
 import os
 import sys
 import json
@@ -212,6 +209,3 @@ def phase_render(job_dir, output_video, language="en"):
 def run_auto(pdf_path, output_video, job_dir, language="en"):
     if not phase_script(pdf_path, job_dir, language=language): return False
     return phase_render(job_dir, output_video, language=language)
-'@ | Set-Content -Path pipeline_video.py -Encoding UTF8
-
-python -m py_compile pipeline_video.py
