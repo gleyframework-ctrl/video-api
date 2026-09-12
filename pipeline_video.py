@@ -34,7 +34,8 @@ def pdf_to_images(pdf_path, output_folder):
         for img in page.images:
             try:
                 pil_image = Image.open(io.BytesIO(img.data))
-                if pil_image.mode != 'RGB': pil_image = pil_image.convert('RGB')
+                if pil_image.mode != 'RGB':
+                    pil_image = pil_image.convert('RGB')
                 image_path = f"{output_folder}/slide_{i+1:02d}.png"
                 pil_image.save(image_path, "PNG")
                 image_paths.append(image_path)
@@ -87,9 +88,18 @@ def generate_script(slide_text, language="en"):
         return None
 
 def generate_audio(script, output_path, language="en"):
-    log("[AUDIO] Generating cloned voice audio with Cartesia...")
+    log(f"[AUDIO] STARTING audio generation for: {output_path}")
+    log(f"[AUDIO] Language: {language}")
+    log(f"[AUDIO] Script length: {len(script)} chars")
+    log(f"[AUDIO] CARTESIA_API_KEY present: {bool(CARTESIA_API_KEY)}")
+    log(f"[AUDIO] CARTESIA_VOICE_ID: {CARTESIA_VOICE_ID}")
+    
     url = "https://api.cartesia.ai/tts/bytes"
-    headers = {"Cartesia-Version": "2024-06-10", "X-API-Key": CARTESIA_API_KEY, "Content-Type": "application/json"}
+    headers = {
+        "Cartesia-Version": "2024-06-10",
+        "X-API-Key": CARTESIA_API_KEY,
+        "Content-Type": "application/json"
+    }
     payload = {
         "model_id": "sonic-3",
         "voice": {"mode": "id", "id": CARTESIA_VOICE_ID},
@@ -97,26 +107,41 @@ def generate_audio(script, output_path, language="en"):
         "transcript": script,
         "language": language,
     }
+    
     try:
+        log(f"[AUDIO] Sending request to Cartesia...")
         response = requests.post(url, json=payload, headers=headers, timeout=60)
+        log(f"[AUDIO] Cartesia response status: {response.status_code}")
+        
         if response.status_code == 200:
-            with open(output_path, "wb") as f: f.write(response.content)
-            log(f"[OK] Audio saved: {output_path}")
+            with open(output_path, "wb") as f:
+                f.write(response.content)
+            file_size = os.path.getsize(output_path)
+            log(f"[AUDIO] OK Audio saved: {output_path} (size: {file_size} bytes)")
             return output_path
         else:
-            log(f"[ERROR] Cartesia error: {response.status_code} - {response.text}")
+            log(f"[AUDIO] ERROR Cartesia error: {response.status_code}")
+            log(f"[AUDIO] Cartesia response body: {response.text[:500]}")
             return None
     except Exception as e:
-        log(f"[ERROR] Cartesia request failed: {e}")
+        log(f"[AUDIO] ERROR Cartesia request failed: {type(e).__name__}: {e}")
         return None
 
 def get_audio_duration(audio_path):
     cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", audio_path]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    try: return float(result.stdout.strip())
-    except ValueError: return 10.0
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        return 10.0
 
 def create_clip(image_path, audio_path, duration, output_path):
+    log(f"[CLIP] STARTING clip creation")
+    log(f"[CLIP] Image exists: {os.path.exists(image_path)}")
+    log(f"[CLIP] Audio exists: {os.path.exists(audio_path)}")
+    log(f"[CLIP] Audio size: {os.path.getsize(audio_path) if os.path.exists(audio_path) else 0} bytes")
+    log(f"[CLIP] Duration: {duration}s")
+    
     duration = max(duration, 0.5)
     cmd = [
         "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
@@ -125,16 +150,24 @@ def create_clip(image_path, audio_path, duration, output_path):
         "-t", str(duration + 0.5), "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k", "-shortest", "-y", output_path
     ]
+    
+    log(f"[CLIP] Running FFmpeg command...")
     result = subprocess.run(cmd, capture_output=True, text=True)
+    
     if result.returncode != 0:
-        log(f"[ERROR] FFmpeg clip creation failed: {result.stderr}")
+        log(f"[CLIP] ERROR FFmpeg failed (return code: {result.returncode})")
+        log(f"[CLIP] FFmpeg stderr: {result.stderr[:500]}")
         return None
     else:
-        log(f"[OK] Clip saved: {output_path}")
-        return output_path if os.path.exists(output_path) else None
+        if os.path.exists(output_path):
+            size = os.path.getsize(output_path)
+            log(f"[CLIP] OK Clip saved: {output_path} (size: {size} bytes)")
+            return output_path
+        else:
+            log(f"[CLIP] ERROR FFmpeg reported success but file not found")
+            return None
 
 def concat_clips(clip_paths, output_path):
-    # CRITICAL FIX: Create filelist.txt in the SAME directory as output
     output_dir = os.path.dirname(output_path)
     os.makedirs(output_dir, exist_ok=True)
     list_path = os.path.join(output_dir, "filelist.txt")
@@ -144,7 +177,6 @@ def concat_clips(clip_paths, output_path):
     
     with open(list_path, "w") as f:
         for clip in clip_paths:
-            # Use absolute paths
             abs_clip = os.path.abspath(clip)
             f.write(f"file '{abs_clip}'\n")
             log(f"[CONCAT] Added to list: {abs_clip}")
@@ -164,7 +196,6 @@ def concat_clips(clip_paths, output_path):
             os.remove(list_path)
         return False
     
-    # CRITICAL FIX: Verify the file was actually created
     if os.path.exists(output_path):
         file_size = os.path.getsize(output_path)
         log(f"[OK] Final video created: {output_path} (size: {file_size} bytes)")
@@ -184,15 +215,18 @@ def phase_script(pdf_path, job_dir, language="en"):
     for i, img_path in enumerate(image_paths, 1):
         slide_text = extract_text_from_slide(pdf_path, i - 1)
         script = generate_script(slide_text, language=language)
-        if not script: script = f"Let's take a look at slide {i}."
+        if not script:
+            script = f"Let's take a look at slide {i}."
         scripts_data.append({"index": i, "image": img_path, "script": script})
     
-    with open(f"{job_dir}/scripts.json", "w") as f: json.dump(scripts_data, f)
+    with open(f"{job_dir}/scripts.json", "w") as f:
+        json.dump(scripts_data, f)
     log(f"[OK] {len(scripts_data)} scripts saved")
     return True
 
 def phase_render(job_dir, output_video, language="en"):
-    with open(f"{job_dir}/scripts.json", "r") as f: scripts_data = json.load(f)
+    with open(f"{job_dir}/scripts.json", "r") as f:
+        scripts_data = json.load(f)
     temp_audio_dir = f"{job_dir}/temp_audio"
     temp_clips_dir = f"{job_dir}/temp_clips"
     os.makedirs(temp_audio_dir, exist_ok=True)
@@ -203,11 +237,13 @@ def phase_render(job_dir, output_video, language="en"):
         i, script, image_path = entry["index"], entry["script"], entry["image"]
         audio_path = f"{temp_audio_dir}/slide_{i:02d}.mp3"
         audio_file = generate_audio(script, audio_path, language=language)
-        if not audio_file: continue
+        if not audio_file:
+            continue
         duration = get_audio_duration(audio_file)
         clip_path = f"{temp_clips_dir}/clip_{i:02d}.mp4"
         clip = create_clip(image_path, audio_file, duration, clip_path)
-        if clip: clips.append(clip)
+        if clip:
+            clips.append(clip)
         
     if not clips:
         log("[ERROR] No clips created")
@@ -224,5 +260,6 @@ def phase_render(job_dir, output_video, language="en"):
     return success
 
 def run_auto(pdf_path, output_video, job_dir, language="en"):
-    if not phase_script(pdf_path, job_dir, language=language): return False
+    if not phase_script(pdf_path, job_dir, language=language):
+        return False
     return phase_render(job_dir, output_video, language=language)
