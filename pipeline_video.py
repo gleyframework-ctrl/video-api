@@ -67,9 +67,9 @@ def generate_script(slide_text, language="en"):
     lang_name = LANGUAGE_NAMES.get(language, language)
 
     if language == "en":
-        prompt = f"""You are an expert video scriptwriter for professional coaching content. AUDIENCE: Entrepreneurs and business professionals. TONE: Energetic, conversational, and authoritative. PACING: Write for natural, measured speech delivery - not rushed, not slow. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE REQUIREMENTS: Use clear, concise sentences (8-12 words each). Include natural pauses. Avoid complex jargon. Use active voice. No visual cues. Output ONLY the raw spoken text - nothing else."""
+        prompt = f"""You are an expert video scriptwriter. AUDIENCE: Entrepreneurs. TONE: Energetic, conversational. PACING: Natural, measured delivery. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE: Clear, concise sentences (8-12 words). Natural pauses. No visual cues. Output ONLY the raw spoken text."""
     else:
-        prompt = f"""You are an expert video scriptwriter and translator for professional coaching content. The slide content below may be written in any language, including English. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet. STYLE REQUIREMENTS: Use clear, concise sentences appropriate for {lang_name}. Write for comfortable, professional delivery speed. Avoid complex words. Use active voice. No visual cues. Do NOT include any English words or the original source text. Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else."""
+        prompt = f"""You are an expert video scriptwriter and translator. Slide content: '{slide_text}'. TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name} script/alphabet. STYLE: Clear, concise sentences. Comfortable delivery speed. No complex words. No visual cues. Do NOT include any English words. Output ONLY the {lang_name} spoken text."""
 
     try:
         completion = client.chat.completions.create(
