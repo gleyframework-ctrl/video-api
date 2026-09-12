@@ -67,17 +67,188 @@ def generate_script(slide_text, language="en"):
     client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
     lang_name = LANGUAGE_NAMES.get(language, language)
 
+    # WINNING SCRIPT PATTERN (Example structure to follow)
+    winning_script_pattern = """مرحباً، وصلنا اليوم إلى اليوم الأول من التحدي.
+
+اليوم سنبدأ بشيء بسيط.
+
+شيء لا يحتاج إلى الكثير.
+
+فقط بضع دقائق لنفسك.
+
+والآن، خذي لحظة...
+
+اجلسي بهدوء.
+
+ثم اسألي نفسك:
+
+ماذا أشعر الآن؟
+
+لا تحاولي تغيير الإجابة.
+
+فقط لاحظي."""
+
     if language == "en":
-        prompt = f"""You are an expert video scriptwriter for professional coaching content. AUDIENCE: Entrepreneurs and business professionals. TONE: Energetic, conversational, and authoritative. PACING: Write for natural, measured speech delivery - not rushed, not slow. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) in English. STYLE REQUIREMENTS: Use clear, concise sentences (8-12 words each). Include natural pauses. Avoid complex jargon. Use active voice. No visual cues. Output ONLY the raw spoken text - nothing else."""
+        prompt = f"""You are an expert video scriptwriter who follows EXACT patterns.
+
+I will provide you with:
+1. A SLIDE/REFERENCE that determines WHAT the script says (the content)
+2. A WINNING SCRIPT that determines HOW the script is written (the structure/pattern)
+
+YOUR JOB:
+- Extract the STRUCTURE from the winning script (opening, transitions, sentence rhythm, paragraph flow, question placement, closing)
+- Extract the CONTENT from the slide (topic, exercises, instructions, reflections)
+- Create a NEW script that uses the WINNING STRUCTURE with the SLIDE CONTENT
+
+SLIDE CONTENT:
+"{slide_text}"
+
+WINNING SCRIPT PATTERN (STUDY THIS CAREFULLY):
+{winning_script_pattern}
+
+CRITICAL RULES:
+
+**RULE 1: THE SLIDE IS THE CONTENT SOURCE**
+- The slide determines the topic, exercises, steps, instructions, reflections
+- Do NOT change the slide's topic
+- Do NOT replace the slide's exercises
+- Do NOT add exercises from the winning script
+- Do NOT invent new exercises
+- Do NOT mix content from different topics
+- If the slide says "Topic X", the entire script must be about "Topic X"
+
+**RULE 2: THE WINNING SCRIPT IS LOCKED**
+- Preserve the EXACT structure: opening approach, transitions, sentence rhythm
+- Preserve the paragraph flow and pacing
+- Preserve question placement and style
+- Preserve reflection transitions
+- Preserve closing style
+- Preserve short-sentence rhythm
+- Preserve conversational flow
+- Do NOT create your own structure
+- Do NOT invent a new format
+
+**RULE 3: THE FORMULA**
+WINNING SCRIPT = STRUCTURE + RHYTHM + WRITING STYLE
+SLIDE = TOPIC + EXERCISE + INSTRUCTIONS + REFLECTION
+FINAL SCRIPT = WINNING STRUCTURE + SLIDE CONTENT
+
+**RULE 4: NO "HELPFUL" CHANGES**
+- Do NOT think "I can make this better"
+- Do NOT add explanations
+- Do NOT reorganize
+- Do NOT make it more creative
+- Do NOT turn it into an essay
+- Do NOT make sentences longer
+- FOLLOW THE SLIDE + FOLLOW THE PATTERN
+
+**RULE 5: VOICE-OVER REQUIREMENTS**
+- Keep short sentences
+- Natural pauses
+- Conversational flow
+- Emotional pacing
+- Direct address to viewer
+- Clear instructions
+
+**QUALITY CHECK BEFORE RESPONDING:**
+1. Is every sentence directly related to the slide content?
+2. Does the script follow the winning script's sequence?
+3. Did you preserve the sentence rhythm?
+4. Did you preserve the transitions?
+5. Did you preserve the reflection style?
+6. Did you preserve the closing style?
+7. If I compared the structure with the winning demo, would it feel like the same pattern?
+
+OUTPUT:
+Give me ONLY the finished voice-over script in {lang_name}.
+No analysis. No explanation. No commentary.
+Just the final copy.
+
+Write the script in {lang_name} using the winning pattern structure applied to the slide content above."""
     else:
-        prompt = f"""You are an expert video scriptwriter and translator for professional coaching content. The slide content below may be written in any language, including English. Slide content: "{slide_text}". TASK: Write a short, engaging spoken script (EXACTLY 60-80 words) entirely in {lang_name}, using {lang_name} script/alphabet. STYLE REQUIREMENTS: Use clear, concise sentences appropriate for {lang_name}. Write for comfortable, professional delivery speed. Avoid complex words. Use active voice. No visual cues. Do NOT include any English words or the original source text. Output ONLY the {lang_name} spoken text - no English, no notes, no explanations, nothing else."""
+        prompt = f"""أنت خبير في كتابة النصوص للفيديو تتبع أنماطاً دقيقة.
+
+سأقدم لك:
+1. شريحة/مرجع يحدد ماذا يقول النص (المحتوى)
+2. نص ناجح يحدد كيف يُكتب النص (الهيكل/النمط)
+
+مهمتك:
+- استخرج الهيكل من النص الناجح (البداية، الانتقالات، إيقاع الجمل، تدفق الفقرات، Placement الأسئلة، الخاتمة)
+- استخرج المحتوى من الشريحة (الموضوع، التمارين، التعليمات، التأملات)
+- أنشئ نصاً جديداً يستخدم الهيكل الناجح مع محتوى الشريحة
+
+محتوى الشريحة:
+"{slide_text}"
+
+النمط الناجح (ادرسه بعناية):
+{winning_script_pattern}
+
+القواعد الحاسمة:
+
+**القاعدة 1: الشريحة هي مصدر المحتوى**
+- الشريحة تحدد الموضوع، التمارين، الخطوات، التعليمات، التأملات
+- لا تغير موضوع الشريحة
+- لا تستبدل تمارين الشريحة
+- لا تضف تمارين من النص الناجح
+- لا تختلق تمارين جديدة
+- لا تخلط محتوى من مواضيع مختلفة
+- إذا قالت الشريحة "الموضوع س"، النص بأكمله يجب أن يكون عن "الموضوع س"
+
+**القاعدة 2: النص الناجح ثابت**
+- احفظ الهيكل تماماً: نهج البداية، الانتقالات، إيقاع الجمل
+- احفظ تدفق الفقرات والإيقاع
+- احفظ Placement الأسئلة والأسلوب
+- احفظ انتقالات التأمل
+- احفظ أسلوب الخاتمة
+- احفظ إيقاع الجمل القصيرة
+- احفظ التدفق الحواري
+- لا تنشئ هيكلك الخاص
+- لا تختلق تنسيقاً جديداً
+
+**القاعدة 3: الصيغة**
+النص الناجح = الهيكل + الإيقاع + أسلوب الكتابة
+الشريحة = الموضوع + التمرين + التعليمات + التأمل
+النص النهائي = الهيكل الناجح + محتوى الشريحة
+
+**القاعدة 4: لا تغييرات "مفيدة"**
+- لا تفكر "يمكنني تحسين هذا"
+- لا تضف شرحاً
+- لا تعيد التنظيم
+- لا تجعله أكثر إبداعاً
+- لا تحوله إلى مقال
+- لا تجعل الجمل أطول
+- اتبع الشريحة + اتبع النمط
+
+**القاعدة 5: متطلبات التعليق الصوتي**
+- احفظ الجمل القصيرة
+- وقفات طبيعية
+- تدفق حواري
+- إيقاع عاطفي
+- مخاطبة مباشرة للمشاهد
+- تعليمات واضحة
+
+**فحص الجودة قبل الرد:**
+1. هل كل جملة مرتبطة مباشرة بمحتوى الشريحة؟
+2. هل النص يتبع تسلسل النص الناجح؟
+3. هل حفظت إيقاع الجمل؟
+4. هل حفظت الانتقالات؟
+5. هل حفظت أسلوب التأمل؟
+6. هل حفظت أسلوب الخاتمة؟
+7. إذا قارنت الهيكل مع النموذج الناجح، هل سيبدو وكأنه نفس النمط؟
+
+المخرج:
+أعطني النص النهائي فقط باللغة {lang_name}.
+بدون تحليل. بدون شرح. بدون تعليق.
+فقط النسخة النهائية.
+
+اكتب النص باللغة {lang_name} باستخدام هيكل النمط الناجح المطبق على محتوى الشريحة أعلاه."""
 
     try:
         completion = client.chat.completions.create(
             model="meta/llama-3.2-11b-vision-instruct",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=300,
+            max_tokens=400,
             timeout=300,
         )
         script = completion.choices[0].message.content.strip()
@@ -144,7 +315,7 @@ def create_clip(image_path, audio_path, duration, output_path):
     
     duration = max(duration, 0.5)
     
-    # ULTRA-LIGHTWEIGHT FFMPEG SETTINGS FOR LOW MEMORY ENVIRONMENTS (Railway Free Tier)
+    # IMPROVED QUALITY: Fast preset (still safe for Railway) with better CRF
     cmd = [
         "ffmpeg", 
         "-loop", "1", 
@@ -152,13 +323,13 @@ def create_clip(image_path, audio_path, duration, output_path):
         "-i", audio_path,
         "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
         "-c:v", "libx264", 
-        "-preset", "ultrafast",  # CRITICAL: Uses minimal RAM/CPU
-        "-crf", "28",             # CRITICAL: Lower quality but prevents OOM crashes
+        "-preset", "fast",  # Upgraded from "ultrafast" to "fast" for better quality
+        "-crf", "23",       # Better quality than 28 (lower = better)
         "-t", str(duration + 0.5), 
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "128k",
-        "-threads", "1",          # CRITICAL: Limits threads to prevent RAM spikes
+        "-threads", "1",
         "-shortest", "-y", output_path
     ]
     
@@ -192,15 +363,15 @@ def concat_clips(clip_paths, output_path):
             f.write(f"file '{abs_clip}'\n")
             log(f"[CONCAT] Added to list: {abs_clip}")
     
-    # ULTRA-LIGHTWEIGHT FFMPEG SETTINGS FOR CONCAT
+    # IMPROVED QUALITY SETTINGS
     cmd = [
         "ffmpeg", 
         "-f", "concat", 
         "-safe", "0", 
         "-i", list_path,
         "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-crf", "28",
+        "-preset", "fast",
+        "-crf", "23",
         "-c:a", "aac",
         "-b:a", "128k",
         "-threads", "1",
