@@ -1,3 +1,6 @@
+cd C:\Users\Dell\Desktop\video-api
+
+@'
 import os
 import uuid
 import json
@@ -10,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pipeline_video
 
-app = FastAPI(title="AI Video Generator API", version="4.1.0")
+app = FastAPI(title="AI Video Generator API", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
@@ -52,12 +55,20 @@ def run_pipeline(pdf_path: str, job_id: str, mode: str, language: str):
             # Run the pipeline
             pipeline_video.run_auto(pdf_path, output_video, output_folder, language=language)
             
-            # CRITICAL FIX: Wait for Docker file system to sync
-            time.sleep(3)
-            
-            # CRITICAL FIX: Only check if file exists, ignore return value
-            if not os.path.exists(output_video):
-                raise Exception(f"Video file was not created at {output_video}")
+            # CRITICAL FIX: Robust file existence check with retries
+            log("Pipeline finished. Waiting for file system sync...")
+            file_found = False
+            for attempt in range(15): # Wait up to 30 seconds
+                if os.path.exists(output_video) and os.path.getsize(output_video) > 1000:
+                    file_found = True
+                    break
+                log(f"File not found yet, retrying in 2s (attempt {attempt + 1}/15)")
+                time.sleep(2)
+                
+            if not file_found:
+                # Debug: list directory contents if file is missing
+                log(f"Directory contents: {os.listdir(output_folder)}")
+                raise Exception(f"Video file was not created at {output_video} after waiting.")
             
             _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
             log(f"Job {job_id} completed successfully!")
@@ -76,11 +87,17 @@ def run_render(job_id: str):
         _update_status(status_file, "rendering", 60)
         pipeline_video.phase_render(output_folder, output_video, language=cfg.get("language", "en"))
         
-        # CRITICAL FIX: Wait for Docker file system to sync
-        time.sleep(3)
-        
-        if not os.path.exists(output_video):
-            raise Exception(f"Video file was not created at {output_video}")
+        # CRITICAL FIX: Robust file existence check
+        log("Render finished. Waiting for file system sync...")
+        file_found = False
+        for attempt in range(15):
+            if os.path.exists(output_video) and os.path.getsize(output_video) > 1000:
+                file_found = True
+                break
+            time.sleep(2)
+            
+        if not file_found:
+            raise Exception(f"Video file was not created at {output_video} after waiting.")
             
         _update_status(status_file, "completed", 100, video_url=f"/download/{job_id}/final_video.mp4")
         log(f"Job {job_id} render completed!")
@@ -192,8 +209,11 @@ async def delete_job(job_id: str):
 
 @app.get("/")
 async def root():
-    return {"service": "AI Video Generator API", "version": "4.1.0", "status": "running"}
+    return {"service": "AI Video Generator API", "version": "5.0.0", "status": "running"}
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
+'@ | Set-Content -Path main.py -Encoding UTF8
+
+findstr "retrying" main.py
