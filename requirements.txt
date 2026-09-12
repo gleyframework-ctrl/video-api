@@ -1,3 +1,4 @@
+@'
 fastapi==0.115.0
 uvicorn==0.30.0
 python-multipart==0.0.9
@@ -7,3 +8,6 @@ openai==1.59.7
 httpx==0.27.2
 requests==2.32.3
 pymupdf==1.24.0
+'@ | Set-Content -Path requirements.txt -Encoding UTF8
+
+type requirements.txt
