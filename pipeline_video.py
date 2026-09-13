@@ -3,10 +3,12 @@ import sys
 import json
 import subprocess
 import requests
+from openai import OpenAI
 from pypdf import PdfReader
 from PIL import Image
 import io
 
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
 CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
 CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "2a1938fe-6a4c-4fa0-86a7-dd585a5f7211")
 
@@ -46,6 +48,83 @@ def pdf_to_images(pdf_path, output_folder):
             image_paths.append(image_path)
     
     return image_paths
+
+def extract_text_from_slide(pdf_path, slide_index):
+    """Extract text from a specific slide"""
+    try:
+        reader = PdfReader(pdf_path)
+        if slide_index < len(reader.pages):
+            text = reader.pages[slide_index].extract_text()
+            return text.strip() if text else f"Slide {slide_index + 1}"
+    except Exception as e:
+        log(f"[WARN] Could not extract text: {e}")
+    return f"Slide {slide_index + 1}"
+
+def generate_script(slide_text, language="en"):
+    """Generate script for ONE slide using NVIDIA Llama"""
+    if not NVIDIA_API_KEY:
+        return None
+    
+    log(f"[AI] Generating script for slide...")
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
+    lang_name = "Arabic" if language == "ar" else "English"
+
+    if language == "en":
+        prompt = f"""You are an expert video scriptwriter. Write a short, engaging spoken script (60-80 words) for this slide content:
+
+"{slide_text}"
+
+Requirements:
+- Clear, concise sentences (8-15 words each)
+- Natural pauses for voice-over
+- Conversational tone
+- Output ONLY the script text, no explanations"""
+    else:
+        prompt = f"""أنت خبير في كتابة النصوص للفيديو. اكتب نصاً قصيراً وجذاباً (60-80 كلمة) لمحتوى هذه الشريحة:
+
+"{slide_text}"
+
+المتطلبات:
+- جمل واضحة ومختصرة (8-15 كلمة لكل جملة)
+- وقفات طبيعية للتعليق الصوتي
+- نبرة حوارية
+- أخرج النص النهائي فقط، بدون شرح"""
+
+    try:
+        completion = client.chat.completions.create(
+            model="meta/llama-3.2-11b-vision-instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=300,
+            timeout=300,
+        )
+        script = completion.choices[0].message.content.strip()
+        log(f"[OK] Script generated ({len(script)} chars)")
+        return script
+    except Exception as e:
+        log(f"[ERROR] NVIDIA API error: {e}")
+        return None
+
+def generate_scripts_for_all_slides(pdf_path, language="en"):
+    """Generate scripts for ALL slides in a PDF"""
+    log(f"[AI] Starting script generation for all slides...")
+    
+    reader = PdfReader(pdf_path)
+    total_slides = len(reader.pages)
+    scripts = []
+    
+    for i in range(total_slides):
+        log(f"[AI] Processing slide {i+1}/{total_slides}...")
+        slide_text = extract_text_from_slide(pdf_path, i)
+        script = generate_script(slide_text, language)
+        
+        if script:
+            scripts.append({"slide": i+1, "script": script})
+        else:
+            scripts.append({"slide": i+1, "script": f"Script for slide {i+1}"})
+    
+    log(f"[OK] Generated {len(scripts)} scripts")
+    return scripts
 
 def generate_audio(script, output_path, language="en"):
     log(f"[AUDIO] Generating: {output_path}")
@@ -166,17 +245,13 @@ def render_from_scripts(job_dir, output_video, language="en"):
             script = entry["script"]
             image_path = entry["image"]
             
-            # Generate audio
             audio_path = f"{temp_audio_dir}/slide_{i:02d}.mp3"
             audio_file = generate_audio(script, audio_path, language)
             
             if not audio_file:
                 continue
             
-            # Get duration
             duration = get_audio_duration(audio_file)
-            
-            # Create clip
             clip_path = f"{temp_clips_dir}/clip_{i:02d}.mp4"
             clip = create_clip(image_path, audio_file, duration, clip_path)
             
@@ -189,7 +264,6 @@ def render_from_scripts(job_dir, output_video, language="en"):
                 json.dump({"status": "failed", "error": "No clips"}, f)
             return False
         
-        # Concatenate
         success = concat_clips(clips, output_video)
         
         if success:
