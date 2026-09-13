@@ -57,7 +57,7 @@ def generate_audio(script, output_path, language="en", api_key=None, voice_id=No
     """Generate audio using the USER'S provided Cartesia credentials."""
     log(f"[AUDIO] Generating audio for: {output_path}")
     
-    # Use the user's key, or fallback to environment variable if missing
+    # Use the user's key, or fallback to environment variable if missing (for your own testing)
     actual_api_key = api_key or os.environ.get("CARTESIA_API_KEY")
     actual_voice_id = voice_id or os.environ.get("CARTESIA_VOICE_ID", "2a1938fe-6a4c-4fa0-86a7-dd585a5f7211")
     
