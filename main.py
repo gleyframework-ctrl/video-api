@@ -4,11 +4,10 @@ import json
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pypdf import PdfReader
 import pipeline_video
 
-app = FastAPI(title="AI Video Generator", version="7.0.0")
+app = FastAPI(title="AI Video Generator", version="7.1.0")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
@@ -21,31 +20,47 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def log(msg): print(f"[API] {msg}")
 
-# --- FRONTEND SERVING ---
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# --- NEW: COUNT SLIDES ---
 @app.post("/count-slides")
 async def count_slides(file: UploadFile = File(...)):
-    """Quickly counts pages so the UI knows how many script boxes to show."""
     try:
         content = await file.read()
-        # Save temporarily to count
         temp_path = f"{UPLOAD_DIR}/temp_count.pdf"
         with open(temp_path, "wb") as f: f.write(content)
         
         reader = PdfReader(temp_path)
         page_count = len(reader.pages)
-        os.remove(temp_path) # Clean up
+        os.remove(temp_path)
         
         return JSONResponse({"slides": page_count})
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid PDF: {str(e)}")
 
-# --- EXISTING: CREATE VIDEO ---
+@app.post("/generate-scripts")
+async def generate_scripts(file: UploadFile = File(...), language: str = Form("en")):
+    """AI generates scripts for all slides"""
+    try:
+        content = await file.read()
+        job_id = str(uuid.uuid4())[:8]
+        pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
+        
+        with open(pdf_path, "wb") as f:
+            f.write(content)
+        
+        # Generate scripts using AI
+        scripts = pipeline_video.generate_scripts_for_all_slides(pdf_path, language)
+        
+        # Clean up PDF
+        os.remove(pdf_path)
+        
+        return JSONResponse({"scripts": scripts})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/create-video")
 async def create_video(
     background_tasks: BackgroundTasks,
