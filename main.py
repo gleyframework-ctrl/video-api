@@ -1,14 +1,12 @@
 import os
 import uuid
 import json
-import time
-from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pipeline_video
 
-app = FastAPI(title="AI Video Generator", version="2.0.0")
+app = FastAPI(title="AI Video Generator", version="7.2.0")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
@@ -22,7 +20,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def log(msg):
     print(f"[API] {msg}")
 
-# --- SERVE THE FRONTEND ---
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     if os.path.exists("index.html"):
@@ -30,13 +27,13 @@ async def serve_frontend():
             return f.read()
     return HTMLResponse("<h1>Frontend not found. Please upload index.html to the root directory.</h1>")
 
-# --- UPLOAD & AUTO-GENERATE ENDPOINT ---
 @app.post("/upload")
 async def upload_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    language: str = Form("ar"),
-    scripts: Optional[str] = Form(None)  # Made optional!
+    language: str = Form("en"),
+    cartesia_api_key: str = Form(...),       # <-- NEW: Get user's key
+    cartesia_voice_id: str = Form(...)       # <-- NEW: Get user's voice ID
 ):
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -47,32 +44,18 @@ async def upload_pdf(
     os.makedirs(output_folder, exist_ok=True)
     
     try:
-        # 1. Save PDF
         with open(pdf_path, "wb") as f:
             f.write(await file.read())
         
-        # 2. Extract Slides
         slides_folder = f"{output_folder}/slides"
         os.makedirs(slides_folder, exist_ok=True)
         image_paths = pipeline_video.pdf_to_images(pdf_path, slides_folder)
         
-        # 3. Handle Scripts (Auto-generate if not provided)
-        if scripts:
-            script_list = json.loads(scripts)
-        else:
-            log(f"Auto-generating scripts for {len(image_paths)} slides...")
-            script_list = []
-            for i, img_path in enumerate(image_paths, 1):
-                slide_text = pipeline_video.extract_text_from_slide(pdf_path, i - 1)
-                # This now uses your NEW intelligent pattern-matching function!
-                generated_script = pipeline_video.generate_script(slide_text, language=language)
-                script_list.append(generated_script or f"Script for slide {i}")
-        
-        # 4. Save Scripts Data
-        scripts_data = [
-            {"index": i, "image": img_path, "script": script_text}
-            for i, (img_path, script_text) in enumerate(zip(image_paths, script_list), 1)
-        ]
+        scripts_data = []
+        for i, img_path in enumerate(image_paths, 1):
+            slide_text = pipeline_video.extract_text_from_slide(pdf_path, i - 1)
+            script = pipeline_video.generate_script(slide_text, language=language)
+            scripts_data.append({"index": i, "image": img_path, "script": script or f"Script for slide {i}"})
         
         with open(f"{output_folder}/scripts.json", "w") as f:
             json.dump(scripts_data, f)
@@ -80,15 +63,23 @@ async def upload_pdf(
         with open(f"{output_folder}/config.json", "w") as f:
             json.dump({"language": language}, f)
         
-        log(f"Job {job_id} started. Mode: {'Manual' if scripts else 'Auto-AI'}")
+        log(f"Job {job_id} started. Mode: Auto-AI with BYOK")
         
-        # 5. Start Background Video Rendering
         output_video = f"{output_folder}/final_video.mp4"
-        background_tasks.add_task(pipeline_video.render_from_scripts, output_folder, output_video, language)
+        
+        # PASS THE USER'S KEYS TO THE BACKGROUND TASK
+        background_tasks.add_task(
+            pipeline_video.render_from_scripts,
+            output_folder,
+            output_video,
+            language,
+            api_key=cartesia_api_key,
+            voice_id=cartesia_voice_id
+        )
         
         return JSONResponse({
-            "job_id": job_id, 
-            "status": "processing", 
+            "job_id": job_id,
+            "status": "processing",
             "slides": len(image_paths),
             "status_url": f"/status/{job_id}"
         })
@@ -98,7 +89,6 @@ async def upload_pdf(
             os.remove(pdf_path)
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- STATUS & DOWNLOAD ENDPOINTS ---
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
     status_file = f"{OUTPUT_DIR}/{job_id}/status.json"
