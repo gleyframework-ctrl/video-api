@@ -3,17 +3,9 @@ import sys
 import json
 import subprocess
 import requests
-from openai import OpenAI
 from pypdf import PdfReader
 from PIL import Image
 import io
-
-NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
-CARTESIA_API_KEY = os.environ.get("CARTESIA_API_KEY")
-CARTESIA_VOICE_ID = os.environ.get("CARTESIA_VOICE_ID", "2a1938fe-6a4c-4fa0-86a7-dd585a5f7211")
-
-if not CARTESIA_API_KEY:
-    raise ValueError("Missing CARTESIA_API_KEY!")
 
 def log(msg):
     print(msg)
@@ -23,7 +15,6 @@ def pdf_to_images(pdf_path, output_folder):
     os.makedirs(output_folder, exist_ok=True)
     reader = PdfReader(pdf_path)
     image_paths = []
-    
     for i, page in enumerate(reader.pages):
         image_found = False
         for img in page.images:
@@ -38,19 +29,16 @@ def pdf_to_images(pdf_path, output_folder):
                 image_found = True
                 break
             except Exception as e:
-                log(f"[WARN] Failed: {e}")
-        
+                log(f"[WARN] Failed to extract image {i+1}: {e}")
         if not image_found:
-            log(f"[WARN] Creating placeholder for slide {i+1}")
+            log(f"[WARN] No image on page {i+1}, creating placeholder")
             img = Image.new('RGB', (1280, 720), color=(255, 255, 255))
             image_path = f"{output_folder}/slide_{i+1:02d}.png"
             img.save(image_path, "PNG")
             image_paths.append(image_path)
-    
     return image_paths
 
 def extract_text_from_slide(pdf_path, slide_index):
-    """Extract text from a specific slide"""
     try:
         reader = PdfReader(pdf_path)
         if slide_index < len(reader.pages):
@@ -61,83 +49,31 @@ def extract_text_from_slide(pdf_path, slide_index):
     return f"Slide {slide_index + 1}"
 
 def generate_script(slide_text, language="en"):
-    """Generate script for ONE slide using NVIDIA Llama"""
-    if not NVIDIA_API_KEY:
-        return None
-    
-    log(f"[AI] Generating script for slide...")
-    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY)
+    """Basic fallback script generation"""
     lang_name = "Arabic" if language == "ar" else "English"
+    return f"Here is the script for this slide about: {slide_text[:50]}..."
 
-    if language == "en":
-        prompt = f"""You are an expert video scriptwriter. Write a short, engaging spoken script (60-80 words) for this slide content:
-
-"{slide_text}"
-
-Requirements:
-- Clear, concise sentences (8-15 words each)
-- Natural pauses for voice-over
-- Conversational tone
-- Output ONLY the script text, no explanations"""
-    else:
-        prompt = f"""أنت خبير في كتابة النصوص للفيديو. اكتب نصاً قصيراً وجذاباً (60-80 كلمة) لمحتوى هذه الشريحة:
-
-"{slide_text}"
-
-المتطلبات:
-- جمل واضحة ومختصرة (8-15 كلمة لكل جملة)
-- وقفات طبيعية للتعليق الصوتي
-- نبرة حوارية
-- أخرج النص النهائي فقط، بدون شرح"""
-
-    try:
-        completion = client.chat.completions.create(
-            model="meta/llama-3.2-11b-vision-instruct",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=300,
-            timeout=300,
-        )
-        script = completion.choices[0].message.content.strip()
-        log(f"[OK] Script generated ({len(script)} chars)")
-        return script
-    except Exception as e:
-        log(f"[ERROR] NVIDIA API error: {e}")
+def generate_audio(script, output_path, language="en", api_key=None, voice_id=None):
+    """Generate audio using the USER'S provided Cartesia credentials."""
+    log(f"[AUDIO] Generating audio for: {output_path}")
+    
+    # Use the user's key, or fallback to environment variable if missing
+    actual_api_key = api_key or os.environ.get("CARTESIA_API_KEY")
+    actual_voice_id = voice_id or os.environ.get("CARTESIA_VOICE_ID", "2a1938fe-6a4c-4fa0-86a7-dd585a5f7211")
+    
+    if not actual_api_key:
+        log("[ERROR] No Cartesia API Key provided!")
         return None
 
-def generate_scripts_for_all_slides(pdf_path, language="en"):
-    """Generate scripts for ALL slides in a PDF"""
-    log(f"[AI] Starting script generation for all slides...")
-    
-    reader = PdfReader(pdf_path)
-    total_slides = len(reader.pages)
-    scripts = []
-    
-    for i in range(total_slides):
-        log(f"[AI] Processing slide {i+1}/{total_slides}...")
-        slide_text = extract_text_from_slide(pdf_path, i)
-        script = generate_script(slide_text, language)
-        
-        if script:
-            scripts.append({"slide": i+1, "script": script})
-        else:
-            scripts.append({"slide": i+1, "script": f"Script for slide {i+1}"})
-    
-    log(f"[OK] Generated {len(scripts)} scripts")
-    return scripts
-
-def generate_audio(script, output_path, language="en"):
-    log(f"[AUDIO] Generating: {output_path}")
-    
     url = "https://api.cartesia.ai/tts/bytes"
     headers = {
         "Cartesia-Version": "2024-06-10",
-        "X-API-Key": CARTESIA_API_KEY,
+        "X-API-Key": actual_api_key,
         "Content-Type": "application/json"
     }
     payload = {
         "model_id": "sonic-3",
-        "voice": {"mode": "id", "id": CARTESIA_VOICE_ID},
+        "voice": {"mode": "id", "id": actual_voice_id},
         "output_format": {"container": "mp3", "bit_rate": 128000, "sample_rate": 44100},
         "transcript": script,
         "language": language,
@@ -149,13 +85,13 @@ def generate_audio(script, output_path, language="en"):
             with open(output_path, "wb") as f:
                 f.write(response.content)
             size = os.path.getsize(output_path)
-            log(f"[OK] Audio saved: {output_path} ({size} bytes)")
+            log(f"[OK] Audio saved: {output_path} (size: {size} bytes)")
             return output_path
         else:
-            log(f"[ERROR] Cartesia: {response.status_code}")
+            log(f"[ERROR] Cartesia error: {response.status_code} - {response.text[:100]}")
             return None
     except Exception as e:
-        log(f"[ERROR] {e}")
+        log(f"[ERROR] Cartesia request failed: {e}")
         return None
 
 def get_audio_duration(audio_path):
@@ -167,9 +103,10 @@ def get_audio_duration(audio_path):
         return 10.0
 
 def create_clip(image_path, audio_path, duration, output_path):
-    log(f"[CLIP] Creating...")
+    log(f"[CLIP] Creating clip...")
     duration = max(duration, 0.5)
     
+    # SAFE, LIGHTWEIGHT FFMPEG SETTINGS (Prevents memory crashes)
     cmd = [
         "ffmpeg", "-loop", "1", "-i", image_path, "-i", audio_path,
         "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
@@ -182,12 +119,12 @@ def create_clip(image_path, audio_path, duration, output_path):
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        log(f"[ERROR] FFmpeg failed")
+        log(f"[ERROR] FFmpeg failed: {result.stderr[:200]}")
         return None
     else:
         if os.path.exists(output_path):
             size = os.path.getsize(output_path)
-            log(f"[OK] Clip saved: {output_path} ({size} bytes)")
+            log(f"[OK] Clip saved: {output_path} (size: {size} bytes)")
             return output_path
         return None
 
@@ -213,20 +150,20 @@ def concat_clips(clip_paths, output_path):
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
-        log(f"[ERROR] Concat failed")
+        log(f"[ERROR] FFmpeg concat failed")
         if os.path.exists(list_path):
             os.remove(list_path)
         return False
     
     if os.path.exists(output_path):
-        size = os.path.getsize(output_path)
-        log(f"[OK] Final video: {output_path} ({size} bytes)")
+        file_size = os.path.getsize(output_path)
+        log(f"[OK] Final video created: {output_path} (size: {file_size} bytes)")
         if os.path.exists(list_path):
             os.remove(list_path)
         return True
     return False
 
-def render_from_scripts(job_dir, output_video, language="en"):
+def render_from_scripts(job_dir, output_video, language="en", api_key=None, voice_id=None):
     status_file = f"{job_dir}/status.json"
     
     try:
@@ -246,7 +183,8 @@ def render_from_scripts(job_dir, output_video, language="en"):
             image_path = entry["image"]
             
             audio_path = f"{temp_audio_dir}/slide_{i:02d}.mp3"
-            audio_file = generate_audio(script, audio_path, language)
+            # PASS THE USER'S KEYS HERE
+            audio_file = generate_audio(script, audio_path, language=language, api_key=api_key, voice_id=voice_id)
             
             if not audio_file:
                 continue
@@ -261,7 +199,7 @@ def render_from_scripts(job_dir, output_video, language="en"):
         if not clips:
             log("[ERROR] No clips created")
             with open(status_file, "w") as f:
-                json.dump({"status": "failed", "error": "No clips"}, f)
+                json.dump({"status": "failed", "error": "No clips created"}, f)
             return False
         
         success = concat_clips(clips, output_video)
@@ -275,12 +213,12 @@ def render_from_scripts(job_dir, output_video, language="en"):
                 }, f)
         else:
             with open(status_file, "w") as f:
-                json.dump({"status": "failed"}, f)
+                json.dump({"status": "failed", "error": "Concatenation failed"}, f)
         
         return success
         
     except Exception as e:
-        log(f"[ERROR] {e}")
+        log(f"[ERROR] Render failed: {e}")
         with open(status_file, "w") as f:
             json.dump({"status": "failed", "error": str(e)}, f)
         return False
