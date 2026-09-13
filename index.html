@@ -3,187 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Generator</title>
+    <title>Nexus AI | Enterprise Video Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f8fafc; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-hover:hover { background: rgba(30, 41, 59, 0.8); border-color: rgba(99, 102, 241, 0.5); }
+        .gradient-text { background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glow { box-shadow: 0 0 40px -10px rgba(99, 102, 241, 0.3); }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .loader { border-top-color: #818cf8; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        textarea { resize: none; }
+        textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); }
+    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-3xl w-full bg-gray-800 rounded-xl shadow-2xl p-8">
-        <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">🎬 AI Video Generator</h1>
-        <p class="text-gray-400 text-center mb-8">Upload PDF, AI generates scripts, create HD video.</p>
+<body class="min-h-screen flex flex-col overflow-hidden" x-data="appData()">
 
-        <!-- Step 1: Upload PDF -->
-        <div id="step1" class="space-y-4">
-            <label class="block text-sm font-medium text-gray-300">1. Upload Presentation (PDF)</label>
-            <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
-            <button onclick="countSlides()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Next: Generate Scripts</button>
+    <!-- Top Navigation -->
+    <nav class="glass border-b border-white/5 px-8 py-4 flex justify-between items-center z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white">N</div>
+            <span class="text-xl font-bold tracking-tight">Nexus<span class="gradient-text">AI</span></span>
         </div>
-
-        <!-- Step 2: AI Script Generation -->
-        <div id="step2" class="hidden space-y-4 mt-6">
-            <div class="flex justify-between items-center">
-                <label class="block text-sm font-medium text-gray-300">2. AI Script Generation</label>
-                <span id="slideCountBadge" class="bg-blue-900 text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded">0 slides</span>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-medium text-green-400">System Online</span>
             </div>
+            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">U</div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex items-center justify-center p-6 relative overflow-y-auto custom-scrollbar">
+        <!-- Background Glow -->
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl -z-10 animate-float"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl -z-10 animate-float" style="animation-delay: 2s;"></div>
+
+        <div class="w-full max-w-5xl">
             
-            <div id="aiGeneration" class="text-center py-8">
-                <p class="text-gray-400 mb-4">Click below to let AI generate scripts for all slides</p>
-                <button onclick="generateAIScripts()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded transition">
-                     Generate Scripts with AI
+            <!-- Progress Stepper -->
+            <div class="flex justify-between mb-12 px-12" x-show="step > 1">
+                <template x-for="(s, index) in ['Upload', 'Generate', 'Review', 'Render', 'Export']">
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                             :class="step > index + 1 ? 'bg-indigo-500 text-white' : (step === index + 1 ? 'bg-white text-slate-900' : 'bg-slate-800 text-slate-500')">
+                            <span x-show="step <= index + 1" x-text="index + 1"></span>
+                            <svg x-show="step > index + 1" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <span class="text-xs font-medium" :class="step >= index + 1 ? 'text-white' : 'text-slate-600'" x-text="s"></span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- STEP 1: UPLOAD -->
+            <div x-show="step === 1" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="glass rounded-2xl p-12 text-center glow">
+                <h1 class="text-4xl font-bold mb-3">Create Cinematic AI Videos</h1>
+                <p class="text-slate-400 mb-10 text-lg">Transform your PDF presentations into professional, voice-over videos in seconds.</p>
+                
+                <div class="border-2 border-dashed border-slate-700 rounded-xl p-12 hover:border-indigo-500 transition-colors cursor-pointer relative"
+                     @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop($event)">
+                    <input type="file" x-ref="fileInput" class="hidden" accept=".pdf" @change="handleFileSelect($event)">
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-lg font-medium text-white">Drop your PDF here or click to browse</p>
+                            <p class="text-sm text-slate-500 mt-1">Supports high-resolution PDF presentations</p>
+                        </div>
+                        <div x-show="fileName" class="mt-4 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-indigo-300 text-sm font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span x-text="fileName"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="proceedToGenerate()" :disabled="!file" class="mt-8 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    Analyze Presentation
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                 </button>
             </div>
 
-            <div id="scriptEditor" class="hidden space-y-3 max-h-96 overflow-y-auto pr-2"></div>
-            
-            <div id="editorButtons" class="hidden flex gap-4">
-                <button onclick="regenerateScripts()" class="w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">🔄 Regenerate All</button>
-                <button onclick="createVideo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition"> Create Video</button>
+            <!-- STEP 2: AI GENERATION -->
+            <div x-show="step === 2" class="glass rounded-2xl p-12 text-center" x-transition>
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-700 h-16 w-16 mb-6 mx-auto"></div>
+                <h2 class="text-2xl font-bold mb-2">AI is analyzing your slides...</h2>
+                <p class="text-slate-400" x-text="aiStatus"></p>
+                
+                <div class="mt-8 max-w-md mx-auto bg-slate-900 rounded-lg p-4 text-left font-mono text-xs text-slate-400 border border-slate-800">
+                    <p class="text-green-400">> Initializing neural network...</p>
+                    <p x-show="slideCount > 0" class="text-indigo-400">> Detected <span x-text="slideCount"></span> slides</p>
+                    <p x-show="isGeneratingScripts" class="text-purple-400 animate-pulse">> Generating context-aware scripts...</p>
+                </div>
             </div>
-        </div>
 
-        <!-- Step 3: Progress -->
-        <div id="step3" class="hidden space-y-4 mt-6 text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
-            <p class="text-lg text-gray-300">Generating your video...</p>
-            <p class="text-sm text-gray-500">This takes 30-60 seconds. Do not close this tab.</p>
-        </div>
+            <!-- STEP 3: REVIEW & EDIT -->
+            <div x-show="step === 3" class="glass rounded-2xl overflow-hidden flex flex-col h-[75vh]" x-transition>
+                <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                    <div>
+                        <h2 class="text-xl font-bold">Review AI Scripts</h2>
+                        <p class="text-sm text-slate-400">Fine-tune the voice-over for each slide before rendering.</p>
+                    </div>
+                    <button @click="regenerateScripts()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Regenerate All
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                    <template x-for="(item, index) in scripts" :key="index">
+                        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-indigo-500/50 transition-colors">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Slide <span x-text="item.slide"></span></span>
+                                <span class="text-xs text-slate-500" x-text="item.script.length + ' chars'"></span>
+                            </div>
+                            <textarea x-model="item.script" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 focus:border-indigo-500 transition-colors" :placeholder="'Enter script for slide ' + item.slide"></textarea>
+                        </div>
+                    </template>
+                </div>
 
-        <!-- Step 4: Success -->
-        <div id="step4" class="hidden space-y-4 mt-6 text-center">
-            <div class="text-5xl">🎉</div>
-            <h2 class="text-2xl font-bold text-green-400">Video Ready!</h2>
-            <a id="downloadLink" href="#" class="block w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded transition">⬇️ Download Video</a>
-            <button onclick="location.reload()" class="text-blue-400 hover:text-blue-300 text-sm">Create Another</button>
+                <div class="p-6 border-t border-white/5 bg-slate-900/50 flex justify-end gap-4">
+                    <button @click="step = 2" class="px-6 py-3 rounded-xl text-slate-400 hover:text-white transition">Back</button>
+                    <button @click="startRendering()" class="px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold transition flex items-center gap-2">
+                        Render Final Video
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 4: RENDERING -->
+            <div x-show="step === 4" class="glass rounded-2xl p-12 text-center" x-transition>
+                <div class="relative w-32 h-32 mx-auto mb-8">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-t-indigo-500 border-r-purple-500 animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Rendering High-Definition Video</h2>
+                <p class="text-slate-400 mb-8">Synthesizing audio, aligning frames, and encoding H.264...</p>
+                
+                <div class="max-w-md mx-auto bg-slate-900 rounded-full h-2 overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- STEP 5: EXPORT -->
+            <div x-show="step === 5" class="glass rounded-2xl p-12 text-center" x-transition>
+                <div class="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h2 class="text-3xl font-bold mb-2">Video Ready for Export</h2>
+                <p class="text-slate-400 mb-10">Your cinematic AI video has been successfully generated.</p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+                    <a :href="downloadUrl" class="flex-1 bg-white text-slate-900 font-bold py-4 rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download MP4
+                    </a>
+                    <button @click="resetApp()" class="flex-1 bg-slate-800 text-white font-semibold py-4 rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-2">
+                        Create New Project
+                    </button>
+                </div>
+            </div>
+
         </div>
-        
-        <div id="errorMsg" class="hidden mt-4 p-3 bg-red-900 text-red-200 rounded text-sm text-center"></div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div x-show="toast.show" x-transition class="fixed bottom-8 right-8 glass px-6 py-4 rounded-xl border-l-4 flex items-center gap-3 z-50"
+         :class="toast.type === 'error' ? 'border-red-500' : 'border-green-500'">
+        <span x-text="toast.message" class="text-sm font-medium"></span>
     </div>
 
     <script>
-        let currentJobId = null;
-        let totalSlides = 0;
-        let aiScripts = [];
+        function appData() {
+            return {
+                step: 1,
+                file: null,
+                fileName: '',
+                slideCount: 0,
+                scripts: [],
+                downloadUrl: '',
+                jobId: null,
+                aiStatus: 'Connecting to neural engine...',
+                isGeneratingScripts: false,
+                toast: { show: false, message: '', type: 'success' },
 
-        async function countSlides() {
-            const fileInput = document.getElementById('pdfFile');
-            if (!fileInput.files[0]) return showError("Please select a PDF first.");
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+                handleFileSelect(e) {
+                    if (e.target.files[0]) this.setFile(e.target.files[0]);
+                },
+                handleDrop(e) {
+                    if (e.dataTransfer.files[0]) this.setFile(e.dataTransfer.files[0]);
+                },
+                setFile(file) {
+                    if (file.type !== 'application/pdf') return this.showToast('Please upload a valid PDF file.', 'error');
+                    this.file = file;
+                    this.fileName = file.name;
+                },
 
-            try {
-                const res = await fetch('/count-slides', { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                if (data.slides) {
-                    totalSlides = data.slides;
-                    document.getElementById('slideCountBadge').innerText = `${totalSlides} slides`;
-                    document.getElementById('step1').classList.add('hidden');
-                    document.getElementById('step2').classList.remove('hidden');
-                }
-            } catch (e) { showError("Failed to read PDF."); }
-        }
-
-        async function generateAIScripts() {
-            const fileInput = document.getElementById('pdfFile');
-            if (!fileInput.files[0]) return showError("Please select a PDF first.");
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('language', 'ar');
-
-            document.getElementById('aiGeneration').innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div><p class="text-gray-400 mt-4">AI is writing scripts for each slide...</p></div>';
-
-            try {
-                const res = await fetch('/generate-scripts', { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                if (data.scripts) {
-                    aiScripts = data.scripts;
-                    showScriptEditor();
-                } else {
-                    showError("AI generation failed.");
-                }
-            } catch (e) { showError("AI generation failed."); }
-        }
-
-        function showScriptEditor() {
-            const container = document.getElementById('scriptEditor');
-            container.innerHTML = '';
-            
-            aiScripts.forEach((item, index) => {
-                container.innerHTML += `
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Slide ${item.slide} Script</label>
-                        <textarea id="script-${index}" rows="3" class="w-full bg-gray-700 text-white rounded p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">${item.script}</textarea>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('aiGeneration').classList.add('hidden');
-            container.classList.remove('hidden');
-            document.getElementById('editorButtons').classList.remove('hidden');
-        }
-
-        function regenerateScripts() {
-            document.getElementById('aiGeneration').classList.remove('hidden');
-            document.getElementById('scriptEditor').classList.add('hidden');
-            document.getElementById('editorButtons').classList.add('hidden');
-            generateAIScripts();
-        }
-
-        async function createVideo() {
-            const scripts = [];
-            for (let i = 0; i < aiScripts.length; i++) {
-                const text = document.getElementById(`script-${i}`).value.trim();
-                if (!text) return showError(`Please enter a script for Slide ${i+1}.`);
-                scripts.push(text);
-            }
-
-            const formData = new FormData();
-            formData.append('file', document.getElementById('pdfFile').files[0]);
-            formData.append('scripts', JSON.stringify(scripts));
-            formData.append('language', 'ar');
-
-            document.getElementById('step2').classList.add('hidden');
-            document.getElementById('step3').classList.remove('hidden');
-
-            try {
-                const res = await fetch('/create-video', { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                if (data.job_id) {
-                    currentJobId = data.job_id;
-                    pollStatus();
-                } else {
-                    showError(data.detail || "Upload failed.");
-                }
-            } catch (e) { showError("Network error."); }
-        }
-
-        async function pollStatus() {
-            const interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`/status/${currentJobId}`);
-                    const data = await res.json();
+                async proceedToGenerate() {
+                    if (!this.file) return;
+                    this.step = 2;
+                    this.aiStatus = 'Uploading and analyzing document structure...';
                     
-                    if (data.status === 'completed') {
-                        clearInterval(interval);
-                        document.getElementById('step3').classList.add('hidden');
-                        document.getElementById('step4').classList.remove('hidden');
-                        document.getElementById('downloadLink').href = `/download/${currentJobId}/final_video.mp4`;
-                    } else if (data.status === 'failed') {
-                        clearInterval(interval);
-                        showError("Generation failed: " + (data.error || "Unknown error"));
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', this.file);
+                        
+                        const res = await fetch('/count-slides', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (data.slides) {
+                            this.slideCount = data.slides;
+                            this.aiStatus = 'Document analyzed. Initializing script generation...';
+                            await this.generateScripts();
+                        } else {
+                            throw new Error('Invalid response');
+                        }
+                    } catch (e) {
+                        this.showToast('Failed to analyze PDF.', 'error');
+                        this.step = 1;
                     }
-                } catch (e) { clearInterval(interval); showError("Status check failed."); }
-            }, 5000);
-        }
+                },
 
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.innerText = msg;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 5000);
+                async generateScripts() {
+                    this.isGeneratingScripts = true;
+                    this.aiStatus = 'AI is writing context-aware voice-over scripts...';
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', this.file);
+                        formData.append('language', 'ar');
+                        
+                        const res = await fetch('/generate-scripts', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (data.scripts) {
+                            this.scripts = data.scripts;
+                            this.isGeneratingScripts = false;
+                            setTimeout(() => this.step = 3, 800);
+                        } else {
+                            throw new Error('Generation failed');
+                        }
+                    } catch (e) {
+                        this.showToast('AI script generation failed.', 'error');
+                        this.step = 1;
+                    }
+                },
+
+                async regenerateScripts() {
+                    this.step = 2;
+                    await this.generateScripts();
+                },
+
+                async startRendering() {
+                    this.step = 4;
+                    const scriptsArray = this.scripts.map(s => s.script);
+                    
+                    const formData = new FormData();
+                    formData.append('file', this.file);
+                    formData.append('scripts', JSON.stringify(scriptsArray));
+                    formData.append('language', 'ar');
+
+                    try {
+                        const res = await fetch('/create-video', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (data.job_id) {
+                            this.jobId = data.job_id;
+                            this.pollStatus();
+                        } else {
+                            throw new Error('Render failed');
+                        }
+                    } catch (e) {
+                        this.showToast('Video rendering failed to start.', 'error');
+                        this.step = 3;
+                    }
+                },
+
+                async pollStatus() {
+                    const interval = setInterval(async () => {
+                        try {
+                            const res = await fetch(`/status/${this.jobId}`);
+                            const data = await res.json();
+                            
+                            if (data.status === 'completed') {
+                                clearInterval(interval);
+                                this.downloadUrl = `/download/${this.jobId}/final_video.mp4`;
+                                this.step = 5;
+                            } else if (data.status === 'failed') {
+                                clearInterval(interval);
+                                this.showToast('Rendering failed: ' + (data.error || 'Unknown'), 'error');
+                                this.step = 3;
+                            }
+                        } catch (e) {
+                            clearInterval(interval);
+                            this.showToast('Connection lost during rendering.', 'error');
+                        }
+                    }, 4000);
+                },
+
+                resetApp() {
+                    this.step = 1;
+                    this.file = null;
+                    this.fileName = '';
+                    this.scripts = [];
+                    this.downloadUrl = '';
+                    this.jobId = null;
+                },
+
+                showToast(msg, type = 'success') {
+                    this.toast = { show: true, message: msg, type };
+                    setTimeout(() => this.toast.show = false, 4000);
+                }
+            }
         }
     </script>
 </body>
