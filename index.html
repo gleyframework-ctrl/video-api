@@ -3,76 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Studio</title>
+    <title>NexusAI - Create Cinematic AI Videos</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-indigo-400 mb-2">🎬 AI Video Studio</h1>
-            <p class="text-gray-400">Upload a PDF. AI writes the script. We generate the video.</p>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <nav class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white">N</div>
+                <span class="text-xl font-bold tracking-tight">Nexus<span class="text-indigo-400">AI</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-xs font-medium text-green-400">System Online</span>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">U</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-6 py-16">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-3">Create Cinematic AI Videos</h1>
+            <p class="text-gray-400 text-lg">Transform your PDF presentations into professional, voice-over videos in seconds.</p>
         </div>
 
-        <div id="uploadSection" class="space-y-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">1. Select PDF Presentation</label>
-                <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+        <!-- Upload Form -->
+        <div id="uploadSection" class="glass rounded-2xl p-8 border border-gray-700 shadow-2xl">
+            <!-- PDF Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">1. Upload Your PDF</label>
+                <div class="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors cursor-pointer" onclick="document.getElementById('pdfFile').click()">
+                    <div class="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    </div>
+                    <p class="text-sm font-medium text-white mb-1">Drop your PDF here or click to browse</p>
+                    <p class="text-xs text-gray-500">Supports high-resolution PDF presentations</p>
+                    <input type="file" id="pdfFile" accept=".pdf" class="hidden" onchange="updateFileName(this)">
+                </div>
+                <p id="fileName" class="text-xs text-indigo-400 mt-2 hidden"></p>
             </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">2. Language</label>
-                <select id="language" class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
+
+            <!-- Language Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">2. Select Language</label>
+                <select id="language" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
                     <option value="ar">Arabic (العربية)</option>
                     <option value="en">English</option>
                 </select>
             </div>
 
-            <div class="mt-6 space-y-4 border-t border-gray-700 pt-6">
-                <h3 class="text-sm font-medium text-gray-300">🔑 Your Cartesia Credentials (Required)</h3>
+            <!-- Cartesia API Credentials -->
+            <div class="mb-6 p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-xl">
+                <h3 class="text-sm font-medium text-indigo-300 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    🔑 Your Cartesia Credentials (Required)
+                </h3>
                 
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Cartesia API Key</label>
-                    <input type="password" id="cartesiaApiKey" placeholder="sk_live_..." 
-                           class="w-full bg-gray-700 text-white rounded p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none border border-gray-600">
-                    <a href="https://play.cartesia.ai/" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 mt-1 block">
-                        Don't have one? Get your free API key here &rarr;
-                    </a>
-                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Cartesia API Key</label>
+                        <input type="password" id="cartesiaApiKey" placeholder="sk_live_..." 
+                               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                        <a href="https://play.cartesia.ai/" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">
+                            Don't have one? Get your free API key here →
+                        </a>
+                    </div>
 
-                <div>
-                    <label class="block text-xs text-gray-400 mb-1">Cartesia Voice ID</label>
-                    <input type="text" id="cartesiaVoiceId" placeholder="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211"
-                           class="w-full bg-gray-700 text-white rounded p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none border border-gray-600">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Cartesia Voice ID</label>
+                        <input type="text" id="cartesiaVoiceId" placeholder="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211"
+                               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none">
+                    </div>
                 </div>
             </div>
 
-            <button onclick="startGeneration()" id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2 mt-4">
+            <!-- Generate Button -->
+            <button onclick="startGeneration()" id="generateBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25">
                 <span>🚀 Generate Video</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </button>
         </div>
 
-        <div id="loadingSection" class="hidden text-center py-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto mb-4"></div>
-            <p class="text-lg text-gray-300" id="statusText">Uploading and analyzing PDF...</p>
-            <p class="text-sm text-gray-500 mt-2">This takes 1-2 minutes. Do not close this tab.</p>
+        <!-- Loading State -->
+        <div id="loadingSection" class="hidden glass rounded-2xl p-12 text-center border border-gray-700">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-400 mx-auto mb-6"></div>
+            <h3 class="text-xl font-semibold text-white mb-2" id="statusText">Uploading and analyzing PDF...</h3>
+            <p class="text-gray-400 mb-4">This takes 1-2 minutes. Do not close this tab.</p>
+            <div class="max-w-md mx-auto bg-gray-800 rounded-full h-2 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse" style="width: 100%"></div>
+            </div>
         </div>
 
-        <div id="successSection" class="hidden text-center py-8">
-            <div class="text-5xl mb-4">🎉</div>
-            <h2 class="text-2xl font-bold text-green-400 mb-2">Video Ready!</h2>
-            <p class="text-gray-400 mb-6">Your AI-generated video is ready for download.</p>
-            <a id="downloadLink" href="#" class="block w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition mb-4">
-                ⬇️ Download MP4
-            </a>
-            <button onclick="location.reload()" class="text-indigo-400 hover:text-indigo-300 text-sm font-medium">
-                Create Another Video
-            </button>
+        <!-- Success State -->
+        <div id="successSection" class="hidden glass rounded-2xl p-12 text-center border border-gray-700">
+            <div class="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2">Video Ready for Export</h2>
+            <p class="text-gray-400 mb-8">Your cinematic AI video has been successfully generated.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+                <a id="downloadLink" href="#" class="flex-1 bg-white text-gray-900 font-bold py-4 px-6 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download MP4
+                </a>
+                <button onclick="location.reload()" class="flex-1 bg-gray-800 text-white font-semibold py-4 px-6 rounded-xl hover:bg-gray-700 transition flex items-center justify-center gap-2">
+                    Create New Project
+                </button>
+            </div>
         </div>
 
-        <div id="errorMsg" class="hidden mt-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded-lg text-sm text-center"></div>
-    </div>
+        <!-- Error Message -->
+        <div id="errorMsg" class="hidden mt-6 p-4 bg-red-900/20 border border-red-700/50 rounded-xl text-red-200 text-sm text-center"></div>
+    </main>
 
     <script>
+        function updateFileName(input) {
+            const fileName = input.files[0]?.name;
+            const fileNameEl = document.getElementById('fileName');
+            if (fileName) {
+                fileNameEl.textContent = `Selected: ${fileName}`;
+                fileNameEl.classList.remove('hidden');
+            }
+        }
+
         async function startGeneration() {
             const fileInput = document.getElementById('pdfFile');
             const language = document.getElementById('language').value;
@@ -80,26 +138,32 @@
             const voiceId = document.getElementById('cartesiaVoiceId').value;
             const errorMsg = document.getElementById('errorMsg');
 
+            // Validation
             if (!fileInput.files[0]) {
-                errorMsg.innerText = "Please select a PDF file first.";
-                errorMsg.classList.remove('hidden');
+                showError("Please select a PDF file first.");
                 return;
             }
             if (!apiKey) {
-                errorMsg.innerText = "Please enter your Cartesia API Key.";
-                errorMsg.classList.remove('hidden');
+                showError("Please enter your Cartesia API Key.");
+                return;
+            }
+            if (!voiceId) {
+                showError("Please enter your Cartesia Voice ID.");
                 return;
             }
 
+            // Clear errors
             errorMsg.classList.add('hidden');
+            
+            // Show loading
             document.getElementById('uploadSection').classList.add('hidden');
             document.getElementById('loadingSection').classList.remove('hidden');
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('language', language);
-            formData.append('cartesia_api_key', apiKey);       // <-- SEND KEY
-            formData.append('cartesia_voice_id', voiceId);     // <-- SEND VOICE ID
+            formData.append('cartesia_api_key', apiKey);
+            formData.append('cartesia_voice_id', voiceId);
 
             try {
                 const response = await fetch('/upload', {
@@ -115,12 +179,11 @@
                 const data = await response.json();
                 const jobId = data.job_id;
                 
-                document.getElementById('statusText').innerText = "AI is writing scripts and rendering video...";
+                document.getElementById('statusText').textContent = "AI is writing scripts and rendering video...";
                 pollStatus(jobId);
 
             } catch (error) {
-                errorMsg.innerText = "Failed to start generation: " + error.message;
-                errorMsg.classList.remove('hidden');
+                showError("Failed to start generation: " + error.message);
                 document.getElementById('loadingSection').classList.add('hidden');
                 document.getElementById('uploadSection').classList.remove('hidden');
             }
@@ -139,22 +202,35 @@
                         document.getElementById('downloadLink').href = `/download/${jobId}/final_video.mp4`;
                     } else if (data.status === 'failed') {
                         clearInterval(interval);
-                        document.getElementById('errorMsg').innerText = "Generation failed: " + (data.error || "Unknown error");
-                        document.getElementById('errorMsg').classList.remove('hidden');
+                        showError("Generation failed: " + (data.error || "Unknown error"));
                         document.getElementById('loadingSection').classList.add('hidden');
                         document.getElementById('uploadSection').classList.remove('hidden');
                     } else {
-                        document.getElementById('statusText').innerText = `Processing... (${data.progress || 50}%)`;
+                        const progress = data.progress || 50;
+                        document.getElementById('statusText').textContent = `Processing... (${progress}%)`;
                     }
                 } catch (error) {
                     clearInterval(interval);
-                    document.getElementById('errorMsg').innerText = "Lost connection to server.";
-                    document.getElementById('errorMsg').classList.remove('hidden');
+                    showError("Lost connection to server.");
                     document.getElementById('loadingSection').classList.add('hidden');
                     document.getElementById('uploadSection').classList.remove('hidden');
                 }
             }, 5000);
         }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
     </script>
+
+    <style>
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
 </body>
 </html>
