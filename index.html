@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-gray-800 rounded-xl shadow-2xl p-8">
+        <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">🎬 AI Video Generator</h1>
+        <p class="text-gray-400 text-center mb-8">Upload PDF, paste scripts, generate HD video.</p>
+
+        <!-- Step 1: Upload PDF -->
+        <div id="step1" class="space-y-4">
+            <label class="block text-sm font-medium text-gray-300">1. Upload Presentation (PDF)</label>
+            <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+            <button onclick="countSlides()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Next: Add Scripts</button>
+        </div>
+
+        <!-- Step 2: Scripts -->
+        <div id="step2" class="hidden space-y-4 mt-6">
+            <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-300">2. Paste Scripts (One per slide)</label>
+                <span id="slideCountBadge" class="bg-blue-900 text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded">0 slides</span>
+            </div>
+            <div id="scriptInputs" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
+            <div class="flex gap-4">
+                <button onclick="goBack()" class="w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition">Back</button>
+                <button onclick="generateVideo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">🚀 Generate Video</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Progress -->
+        <div id="step3" class="hidden space-y-4 mt-6 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
+            <p class="text-lg text-gray-300">Generating your video...</p>
+            <p class="text-sm text-gray-500">This takes 30-60 seconds. Do not close this tab.</p>
+        </div>
+
+        <!-- Step 4: Success -->
+        <div id="step4" class="hidden space-y-4 mt-6 text-center">
+            <div class="text-5xl">🎉</div>
+            <h2 class="text-2xl font-bold text-green-400">Video Ready!</h2>
+            <a id="downloadLink" href="#" class="block w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded transition">⬇️ Download Video</a>
+            <button onclick="location.reload()" class="text-blue-400 hover:text-blue-300 text-sm">Create Another</button>
+        </div>
+        
+        <div id="errorMsg" class="hidden mt-4 p-3 bg-red-900 text-red-200 rounded text-sm text-center"></div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let totalSlides = 0;
+
+        async function countSlides() {
+            const fileInput = document.getElementById('pdfFile');
+            if (!fileInput.files[0]) return showError("Please select a PDF first.");
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/count-slides', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.slides) {
+                    totalSlides = data.slides;
+                    document.getElementById('slideCountBadge').innerText = `${totalSlides} slides`;
+                    generateScriptInputs();
+                    document.getElementById('step1').classList.add('hidden');
+                    document.getElementById('step2').classList.remove('hidden');
+                }
+            } catch (e) { showError("Failed to read PDF."); }
+        }
+
+        function generateScriptInputs() {
+            const container = document.getElementById('scriptInputs');
+            container.innerHTML = '';
+            for (let i = 1; i <= totalSlides; i++) {
+                container.innerHTML += `
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Slide ${i} Script</label>
+                        <textarea id="script-${i}" rows="2" class="w-full bg-gray-700 text-white rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste script for slide ${i}..."></textarea>
+                    </div>
+                `;
+            }
+        }
+
+        function goBack() {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+        }
+
+        async function generateVideo() {
+            const scripts = [];
+            for (let i = 1; i <= totalSlides; i++) {
+                const text = document.getElementById(`script-${i}`).value.trim();
+                if (!text) return showError(`Please enter a script for Slide ${i}.`);
+                scripts.push(text);
+            }
+
+            const formData = new FormData();
+            formData.append('file', document.getElementById('pdfFile').files[0]);
+            formData.append('scripts', JSON.stringify(scripts));
+            formData.append('language', 'ar'); // Change to 'en' if needed
+
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+
+            try {
+                const res = await fetch('/create-video', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.job_id) {
+                    currentJobId = data.job_id;
+                    pollStatus();
+                } else {
+                    showError(data.detail || "Upload failed.");
+                }
+            } catch (e) { showError("Network error."); }
+        }
+
+        async function pollStatus() {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/status/${currentJobId}`);
+                    const data = await res.json();
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        document.getElementById('step3').classList.add('hidden');
+                        document.getElementById('step4').classList.remove('hidden');
+                        document.getElementById('downloadLink').href = `/download/${currentJobId}/final_video.mp4`;
+                    } else if (data.status === 'failed') {
+                        clearInterval(interval);
+                        showError("Generation failed: " + (data.error || "Unknown error"));
+                    }
+                } catch (e) { clearInterval(interval); showError("Status check failed."); }
+            }, 5000); // Check every 5 seconds
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+    </script>
+</body>
+</html>
