@@ -7,27 +7,36 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-2xl w-full bg-gray-800 rounded-xl shadow-2xl p-8">
+    <div class="max-w-3xl w-full bg-gray-800 rounded-xl shadow-2xl p-8">
         <h1 class="text-3xl font-bold mb-2 text-center text-blue-400">🎬 AI Video Generator</h1>
-        <p class="text-gray-400 text-center mb-8">Upload PDF, paste scripts, generate HD video.</p>
+        <p class="text-gray-400 text-center mb-8">Upload PDF, AI generates scripts, create HD video.</p>
 
         <!-- Step 1: Upload PDF -->
         <div id="step1" class="space-y-4">
             <label class="block text-sm font-medium text-gray-300">1. Upload Presentation (PDF)</label>
             <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
-            <button onclick="countSlides()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Next: Add Scripts</button>
+            <button onclick="countSlides()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Next: Generate Scripts</button>
         </div>
 
-        <!-- Step 2: Scripts -->
+        <!-- Step 2: AI Script Generation -->
         <div id="step2" class="hidden space-y-4 mt-6">
             <div class="flex justify-between items-center">
-                <label class="block text-sm font-medium text-gray-300">2. Paste Scripts (One per slide)</label>
+                <label class="block text-sm font-medium text-gray-300">2. AI Script Generation</label>
                 <span id="slideCountBadge" class="bg-blue-900 text-blue-300 text-xs font-medium px-2.5 py-0.5 rounded">0 slides</span>
             </div>
-            <div id="scriptInputs" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
-            <div class="flex gap-4">
-                <button onclick="goBack()" class="w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition">Back</button>
-                <button onclick="generateVideo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">🚀 Generate Video</button>
+            
+            <div id="aiGeneration" class="text-center py-8">
+                <p class="text-gray-400 mb-4">Click below to let AI generate scripts for all slides</p>
+                <button onclick="generateAIScripts()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded transition">
+                     Generate Scripts with AI
+                </button>
+            </div>
+
+            <div id="scriptEditor" class="hidden space-y-3 max-h-96 overflow-y-auto pr-2"></div>
+            
+            <div id="editorButtons" class="hidden flex gap-4">
+                <button onclick="regenerateScripts()" class="w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">🔄 Regenerate All</button>
+                <button onclick="createVideo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition"> Create Video</button>
             </div>
         </div>
 
@@ -52,6 +61,7 @@
     <script>
         let currentJobId = null;
         let totalSlides = 0;
+        let aiScripts = [];
 
         async function countSlides() {
             const fileInput = document.getElementById('pdfFile');
@@ -67,43 +77,72 @@
                 if (data.slides) {
                     totalSlides = data.slides;
                     document.getElementById('slideCountBadge').innerText = `${totalSlides} slides`;
-                    generateScriptInputs();
                     document.getElementById('step1').classList.add('hidden');
                     document.getElementById('step2').classList.remove('hidden');
                 }
             } catch (e) { showError("Failed to read PDF."); }
         }
 
-        function generateScriptInputs() {
-            const container = document.getElementById('scriptInputs');
+        async function generateAIScripts() {
+            const fileInput = document.getElementById('pdfFile');
+            if (!fileInput.files[0]) return showError("Please select a PDF first.");
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('language', 'ar');
+
+            document.getElementById('aiGeneration').innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div><p class="text-gray-400 mt-4">AI is writing scripts for each slide...</p></div>';
+
+            try {
+                const res = await fetch('/generate-scripts', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.scripts) {
+                    aiScripts = data.scripts;
+                    showScriptEditor();
+                } else {
+                    showError("AI generation failed.");
+                }
+            } catch (e) { showError("AI generation failed."); }
+        }
+
+        function showScriptEditor() {
+            const container = document.getElementById('scriptEditor');
             container.innerHTML = '';
-            for (let i = 1; i <= totalSlides; i++) {
+            
+            aiScripts.forEach((item, index) => {
                 container.innerHTML += `
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Slide ${i} Script</label>
-                        <textarea id="script-${i}" rows="2" class="w-full bg-gray-700 text-white rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Paste script for slide ${i}..."></textarea>
+                        <label class="block text-xs text-gray-400 mb-1">Slide ${item.slide} Script</label>
+                        <textarea id="script-${index}" rows="3" class="w-full bg-gray-700 text-white rounded p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">${item.script}</textarea>
                     </div>
                 `;
-            }
+            });
+            
+            document.getElementById('aiGeneration').classList.add('hidden');
+            container.classList.remove('hidden');
+            document.getElementById('editorButtons').classList.remove('hidden');
         }
 
-        function goBack() {
-            document.getElementById('step2').classList.add('hidden');
-            document.getElementById('step1').classList.remove('hidden');
+        function regenerateScripts() {
+            document.getElementById('aiGeneration').classList.remove('hidden');
+            document.getElementById('scriptEditor').classList.add('hidden');
+            document.getElementById('editorButtons').classList.add('hidden');
+            generateAIScripts();
         }
 
-        async function generateVideo() {
+        async function createVideo() {
             const scripts = [];
-            for (let i = 1; i <= totalSlides; i++) {
+            for (let i = 0; i < aiScripts.length; i++) {
                 const text = document.getElementById(`script-${i}`).value.trim();
-                if (!text) return showError(`Please enter a script for Slide ${i}.`);
+                if (!text) return showError(`Please enter a script for Slide ${i+1}.`);
                 scripts.push(text);
             }
 
             const formData = new FormData();
             formData.append('file', document.getElementById('pdfFile').files[0]);
             formData.append('scripts', JSON.stringify(scripts));
-            formData.append('language', 'ar'); // Change to 'en' if needed
+            formData.append('language', 'ar');
 
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step3').classList.remove('hidden');
@@ -137,7 +176,7 @@
                         showError("Generation failed: " + (data.error || "Unknown error"));
                     }
                 } catch (e) { clearInterval(interval); showError("Status check failed."); }
-            }, 5000); // Check every 5 seconds
+            }, 5000);
         }
 
         function showError(msg) {
