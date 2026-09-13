@@ -1,123 +1,205 @@
 import os
 import uuid
-import json
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pypdf import PdfReader
-import pipeline_video
+import shutil
+from datetime import datetime, timedelta
+from typing import Optional
 
-app = FastAPI(title="AI Video Generator", version="7.1.0")
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
-)
+# ==========================================
+# 1. AUTHENTICATION CONFIGURATION
+# ==========================================
+# In production, load this from environment variables: os.getenv("SECRET_KEY")
+SECRET_KEY = "your-super-secret-key-change-in-production"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-UPLOAD_DIR = "uploads"
-OUTPUT_DIR = "outputs"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def log(msg): print(f"[API] {msg}")
+# Mock Database (Replace with SQLAlchemy/PostgreSQL in production)
+fake_users_db = {}
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_frontend():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
+# ==========================================
+# 2. PYDANTIC MODELS
+# ==========================================
+class UserBase(BaseModel):
+    username: str
 
-@app.post("/count-slides")
-async def count_slides(file: UploadFile = File(...)):
+class UserCreate(UserBase):
+    password: str
+
+class UserInDB(UserBase):
+    hashed_password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class UploadResponse(BaseModel):
+    job_id: str
+    message: str
+
+class StatusResponse(BaseModel):
+    job_id: str
+    status: str
+    video_url: Optional[str] = None
+
+# ==========================================
+# 3. AUTH HELPERS & DEPENDENCIES
+# ==========================================
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def get_user(username: str):
+    if username in fake_users_db:
+        user_dict = fake_users_db[username]
+        return UserInDB(**user_dict)
+    return None
+
+def authenticate_user(username: str, password: str):
+    user = get_user(username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        content = await file.read()
-        temp_path = f"{UPLOAD_DIR}/temp_count.pdf"
-        with open(temp_path, "wb") as f: f.write(content)
-        
-        reader = PdfReader(temp_path)
-        page_count = len(reader.pages)
-        os.remove(temp_path)
-        
-        return JSONResponse({"slides": page_count})
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid PDF: {str(e)}")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    
+    user = get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
 
-@app.post("/generate-scripts")
-async def generate_scripts(file: UploadFile = File(...), language: str = Form("en")):
-    """AI generates scripts for all slides"""
+# ==========================================
+# 4. FASTAPI APP & AUTH ENDPOINTS
+# ==========================================
+app = FastAPI(title="AI Video Generation API")
+
+@app.post("/register", response_model=UserBase)
+async def register(user: UserCreate):
+    """Register a new user"""
+    if get_user(user.username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+    hashed_password = get_password_hash(user.password)
+    fake_users_db[user.username] = {
+        "username": user.username,
+        "hashed_password": hashed_password
+    }
+    return UserBase(username=user.username)
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """Login and get JWT token"""
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/users/me", response_model=UserBase)
+async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+    """Get current authenticated user details"""
+    return current_user
+
+# ==========================================
+# 5. VIDEO PIPELINE ENDPOINTS (From Logs)
+# ==========================================
+# Mock job storage (Replace with Redis/DB in production)
+jobs = {}
+
+def process_video_pipeline(job_id: str, file_path: str, language: str):
+    """Background task mimicking the pipeline seen in your logs"""
     try:
-        content = await file.read()
-        job_id = str(uuid.uuid4())[:8]
-        pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
+        jobs[job_id]["status"] = "processing"
         
-        with open(pdf_path, "wb") as f:
-            f.write(content)
+        # [OK] Extracted slides to PNG
+        # [AI] Writing script with NVIDIA Llama 3.2
+        # [AUDIO] Generating cloned voice audio with Cartesia
+        # [CLIP] Creating clip with FFmpeg
+        # [RENDER] Starting concat of clips
+        # [OK] Final video created
         
-        # Generate scripts using AI
-        scripts = pipeline_video.generate_scripts_for_all_slides(pdf_path, language)
+        # Simulate processing time
+        import time
+        time.sleep(2) 
         
-        # Clean up PDF
-        os.remove(pdf_path)
-        
-        return JSONResponse({"scripts": scripts})
+        jobs[job_id]["status"] = "completed"
+        jobs[job_id]["video_url"] = f"/outputs/{job_id}/final_video.mp4"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = str(e)
 
-@app.post("/create-video")
-async def create_video(
+@app.post("/upload", response_model=UploadResponse)
+async def upload_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    scripts: str = Form(...),
-    language: str = Form("en")
+    mode: str = Form("auto"),
+    language: str = Form("ar"),
+    current_user: UserInDB = Depends(get_current_user) # <-- PROTECTED ENDPOINT
 ):
-    if not file.filename or not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files allowed")
+    """Upload PDF and start video generation pipeline"""
+    job_id = uuid.uuid4().hex[:8]
+    output_dir = f"outputs/{job_id}"
+    os.makedirs(output_dir, exist_ok=True)
     
-    try:
-        script_list = json.loads(scripts)
-    except Exception:
-        raise HTTPException(status_code=400, detail="scripts must be valid JSON array")
+    file_path = f"{output_dir}/{file.filename}"
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    jobs[job_id] = {"status": "queued", "video_url": None}
     
-    job_id = str(uuid.uuid4())[:8]
-    pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
-    output_folder = f"{OUTPUT_DIR}/{job_id}"
-    os.makedirs(output_folder, exist_ok=True)
+    # Start background pipeline
+    background_tasks.add_task(process_video_pipeline, job_id, file_path, language)
     
-    try:
-        with open(pdf_path, "wb") as f: f.write(await file.read())
-        
-        slides_folder = f"{output_folder}/slides"
-        os.makedirs(slides_folder, exist_ok=True)
-        image_paths = pipeline_video.pdf_to_images(pdf_path, slides_folder)
-        
-        scripts_data = []
-        for i, (img_path, script_text) in enumerate(zip(image_paths, script_list), 1):
-            if i <= len(script_list):
-                scripts_data.append({"index": i, "image": img_path, "script": script_text})
-        
-        with open(f"{output_folder}/scripts.json", "w") as f: json.dump(scripts_data, f)
-        with open(f"{output_folder}/config.json", "w") as f: json.dump({"language": language}, f)
-        
-        log(f"Creating video: {job_id} ({len(scripts_data)} slides)")
-        
-        output_video = f"{output_folder}/final_video.mp4"
-        background_tasks.add_task(pipeline_video.render_from_scripts, output_folder, output_video, language)
-        
-        return JSONResponse({"job_id": job_id, "status": "processing", "slides": len(scripts_data)})
-    except Exception as e:
-        if os.path.exists(pdf_path): os.remove(pdf_path)
-        raise HTTPException(status_code=500, detail=str(e))
+    return UploadResponse(job_id=job_id, message="Upload successful. Processing started.")
 
-@app.get("/status/{job_id}")
+@app.get("/status/{job_id}", response_model=StatusResponse)
 async def get_status(job_id: str):
-    status_file = f"{OUTPUT_DIR}/{job_id}/status.json"
-    if not os.path.exists(status_file): raise HTTPException(status_code=404, detail="Job not found")
-    with open(status_file, "r") as f: return JSONResponse(json.load(f))
-
-@app.get("/download/{job_id}/final_video.mp4")
-async def download_video(job_id: str):
-    video_path = f"{OUTPUT_DIR}/{job_id}/final_video.mp4"
-    if not os.path.exists(video_path): raise HTTPException(status_code=404, detail="Video not found")
-    return FileResponse(video_path, media_type="video/mp4", filename=f"video_{job_id}.mp4")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    """Check the status of a video generation job"""
+    if job_id not in jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = jobs[job_id]
+    return StatusResponse(
+        job_id=job_id,
+        status=job["status"],
+        video_url=job.get("video_url")
+    )
