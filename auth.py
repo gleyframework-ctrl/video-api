@@ -134,8 +134,9 @@ async def change_password(data: dict):
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
     try:
+        # This requires the service_role key in your environment variables
         supabase.auth.admin.update_user_by_id(user_id, {"password": new_password})
         return {"message": "Password updated successfully"}
     except Exception as e:
         print(f"Error changing password: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update password")
+        raise HTTPException(status_code=500, detail=f"Failed to update password: {str(e)}")
