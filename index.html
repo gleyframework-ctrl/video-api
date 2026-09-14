@@ -3,112 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusAI - Login</title>
+    <title>AI Video Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    
+    <!-- AUTHENTICATION SCREEN -->
     <div id="authContainer" class="max-w-md w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
         <h1 class="text-3xl font-bold text-indigo-400 mb-6 text-center">NexusAI</h1>
         
         <div class="flex mb-6 bg-gray-700 rounded-lg p-1">
-            <button onclick="showLogin()" id="loginTab" class="flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium">Login</button>
-            <button onclick="showSignup()" id="signupTab" class="flex-1 py-2 rounded-md text-gray-400 font-medium">Sign Up</button>
+            <button onclick="showLogin()" id="loginTab" class="flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition">Login</button>
+            <button onclick="showSignup()" id="signupTab" class="flex-1 py-2 rounded-md text-gray-400 font-medium transition">Sign Up</button>
         </div>
 
-        <form onsubmit="handleAuth(event)" class="space-y-4">
+        <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
             <div id="nameField" class="hidden">
                 <label class="block text-sm text-gray-400 mb-1">Full Name</label>
-                <input type="text" id="fullName" class="w-full bg-gray-700 rounded p-2 border border-gray-600">
+                <input type="text" id="fullName" class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
             <div>
                 <label class="block text-sm text-gray-400 mb-1">Email</label>
-                <input type="email" id="email" required class="w-full bg-gray-700 rounded p-2 border border-gray-600">
+                <input type="email" id="email" required class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
             <div>
                 <label class="block text-sm text-gray-400 mb-1">Password</label>
-                <input type="password" id="password" required class="w-full bg-gray-700 rounded p-2 border border-gray-600">
+                <input type="password" id="password" required class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg">Submit</button>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition">Submit</button>
         </form>
         <div id="authError" class="hidden mt-4 p-3 bg-red-900/50 text-red-200 rounded text-sm text-center"></div>
     </div>
 
+    <!-- APP SCREEN (Hidden until logged in) -->
     <div id="appContainer" class="hidden max-w-xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-indigo-400"> AI Video Studio</h1>
+            <h1 class="text-2xl font-bold text-indigo-400">AI Video Studio</h1>
             <button onclick="logout()" class="text-sm text-gray-400 hover:text-white">Logout</button>
         </div>
         
-        <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm mb-4">
-        <select id="language" class="w-full bg-gray-700 rounded p-2 mb-4">
-            <option value="ar">Arabic</option>
-            <option value="en">English</option>
-        </select>
-        
-        <div class="border-t border-gray-700 pt-4 space-y-2 mb-4">
-            <h3 class="text-sm font-medium">🔑 Cartesia API Key</h3>
-            <input type="password" id="cartesiaApiKey" placeholder="sk_live_..." class="w-full bg-gray-700 rounded p-2 text-sm">
-            <input type="text" id="cartesiaVoiceId" value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" class="w-full bg-gray-700 rounded p-2 text-sm">
-        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm text-gray-400 mb-2">Upload PDF Presentation</label>
+                <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+            </div>
+            
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Language</label>
+                <select id="language" class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="en">English</option>
+                    <option value="ar">Arabic</option>
+                </select>
+            </div>
+            
+            <div class="border-t border-gray-700 pt-4 space-y-4">
+                <h3 class="text-sm font-medium text-gray-300">🔑 Cartesia API Credentials</h3>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">API Key</label>
+                    <input type="password" id="cartesiaApiKey" 
+                           placeholder="sk_live_..." 
+                           class="w-full bg-gray-700 rounded p-2 text-sm border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500"
+                           oninput="this.value = this.value.trim()">
+                </div>
+                
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Voice ID</label>
+                    <input type="text" id="cartesiaVoiceId" 
+                           value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" 
+                           class="w-full bg-gray-700 rounded p-2 text-sm border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500"
+                           oninput="this.value = this.value.trim()">
+                </div>
+            </div>
 
-        <button onclick="generateVideo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Generate Video</button>
-        <div id="appStatus" class="hidden mt-4 text-center"></div>
+            <button onclick="generateVideo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition mt-6">
+                Generate Video
+            </button>
+        </div>
+        
+        <div id="appStatus" class="hidden mt-4 text-center text-gray-300"></div>
+        <div id="appError" class="hidden mt-4 p-3 bg-red-900/50 text-red-200 rounded text-sm text-center"></div>
     </div>
 
     <script>
         let isLogin = true;
+        
         function showLogin() { 
             isLogin = true; 
-            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium'; 
-            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium'; 
+            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition'; 
+            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium transition'; 
             document.getElementById('nameField').classList.add('hidden'); 
+            document.getElementById('authError').classList.add('hidden');
         }
+        
         function showSignup() { 
             isLogin = false; 
-            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium'; 
-            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium'; 
+            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition'; 
+            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium transition'; 
             document.getElementById('nameField').classList.remove('hidden'); 
+            document.getElementById('authError').classList.add('hidden');
         }
 
         async function handleAuth(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const url = isLogin ? '/login' : '/signup';
-            const body = isLogin ? { email, password } : { email, password, full_name: document.getElementById('fullName').value };
+            const body = isLogin ? { email, password } : { 
+                email, 
+                password, 
+                full_name: document.getElementById('fullName').value.trim() 
+            };
             
             try {
-                const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                const res = await fetch(url, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(body) 
+                });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.detail);
-                if (isLogin) localStorage.setItem('token', data.access_token);
+                
+                if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+                
+                if (isLogin) {
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('userId', data.user_id);
+                }
+                
                 document.getElementById('authContainer').classList.add('hidden');
                 document.getElementById('appContainer').classList.remove('hidden');
+                document.getElementById('authError').classList.add('hidden');
             } catch (err) {
-                document.getElementById('authError').innerText = err.message;
-                document.getElementById('authError').classList.remove('hidden');
+                const errEl = document.getElementById('authError');
+                errEl.innerText = err.message;
+                errEl.classList.remove('hidden');
             }
         }
 
-        function logout() { localStorage.removeItem('token'); location.reload(); }
+        function logout() { 
+            localStorage.removeItem('token'); 
+            localStorage.removeItem('userId');
+            location.reload(); 
+        }
 
         async function generateVideo() {
             const fileInput = document.getElementById('pdfFile');
-            if (!fileInput.files[0]) { alert('Select PDF'); return; }
+            const apiKey = document.getElementById('cartesiaApiKey').value.trim();
+            const voiceId = document.getElementById('cartesiaVoiceId').value.trim();
+            
+            if (!fileInput.files[0]) { 
+                alert('Please select a PDF file'); 
+                return; 
+            }
+            
+            if (!apiKey) { 
+                alert('Please enter your Cartesia API key'); 
+                return; 
+            }
+            
+            const statusEl = document.getElementById('appStatus');
+            const errorEl = document.getElementById('appError');
+            
+            statusEl.innerText = 'Starting video generation...';
+            statusEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
             
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('language', document.getElementById('language').value);
-            formData.append('cartesia_api_key', document.getElementById('cartesiaApiKey').value);
-            formData.append('cartesia_voice_id', document.getElementById('cartesiaVoiceId').value);
+            formData.append('cartesia_api_key', apiKey);
+            formData.append('cartesia_voice_id', voiceId);
 
             try {
                 const res = await fetch('/upload', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error('Failed');
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.detail || 'Generation failed');
+                }
+                
                 const data = await res.json();
-                document.getElementById('appStatus').innerText = 'Success! Job: ' + data.job_id;
+                statusEl.innerText = '✅ Success! Video is being generated. Job ID: ' + data.job_id;
+                
+                // Clear the form
+                fileInput.value = '';
+                document.getElementById('cartesiaApiKey').value = '';
+                
             } catch (err) {
-                alert('Error: ' + err.message);
+                errorEl.innerText = 'Error: ' + err.message;
+                errorEl.classList.remove('hidden');
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        // Check if user is already logged in
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
             }
         }
     </script>
