@@ -3,707 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Studio | Premium Video Generation Platform</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>AI Video Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
         :root {
-            --ie-gold: #D4AF37;
-            --ie-gold-light: #F4D03F;
-            --ie-gold-dim: rgba(212, 175, 55, 0.15);
-            --ie-blue: #00C4FF;
-            --ie-blue-glow: rgba(0, 196, 255, 0.4);
-            --ie-bg-deep: #0a0f10;
-            --ie-bg-card: rgba(20, 30, 32, 0.4);
-            
-            --ie-radius-sm: 8px;
-            --ie-radius-md: 16px;
-            --ie-radius-lg: 24px;
-            --ie-container-max: 1200px;
-            
-            --ie-text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
-            --ie-text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-            --ie-text-lg: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
-            --ie-text-xl: clamp(1.5rem, 1.3rem + 1vw, 2.25rem);
-            --ie-text-2xl: clamp(2rem, 1.5rem + 2vw, 3.5rem);
-            --ie-text-3xl: clamp(2.5rem, 2rem + 3vw, 5rem);
-
-            --ie-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
-            --ie-ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --gold: #D4AF37;
+            --blue: #00C4FF;
+            --dark: #0a0f10;
+            --card-bg: rgba(20, 30, 32, 0.7);
         }
-
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background-color: var(--ie-bg-deep);
+            background: var(--dark);
             font-family: 'Poppins', sans-serif;
-            color: #ffffff;
-            line-height: 1.7;
-            overflow-x: hidden;
-            position: relative;
+            color: #fff;
+            min-height: 100vh;
         }
-
-        .ie-cinematic-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 15% 50%, rgba(0, 196, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
-                linear-gradient(180deg, #0a0f10 0%, #121a1b 50%, #000000 100%);
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 2rem;
         }
-
-        .ie-noise-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.04;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        .logo { font-family: 'Montserrat', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--gold); }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .user-email { color: var(--blue); font-size: 0.9rem; }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: rgba(255,255,255,0.05);
+            padding: 0.5rem;
+            border-radius: 12px;
         }
-
-        .ie-engine-ring {
-            position: absolute;
-            border: 1px solid rgba(212, 175, 55, 0.1);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .ie-ring-1 { width: 600px; height: 600px; top: -200px; right: -200px; animation: ie-spin 60s linear infinite; border-top-color: var(--ie-gold); }
-        .ie-ring-2 { width: 400px; height: 400px; bottom: -100px; left: -100px; animation: ie-spin 45s linear infinite reverse; border-bottom-color: var(--ie-blue); }
-        .ie-ring-3 { width: 800px; height: 800px; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1px dashed rgba(255,255,255,0.03); animation: ie-spin 120s linear infinite; }
-
-        @keyframes ie-spin { to { transform: rotate(360deg); } }
-        @keyframes ie-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-
-        .ie-container {
-            width: 100%;
-            max-width: var(--ie-container-max);
-            margin: 0 auto;
-            padding: clamp(2rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem);
-            position: relative;
-            z-index: 1;
-        }
-
-        .ie-title-main {
+        .nav-tab {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
             font-family: 'Montserrat', sans-serif;
-            font-size: var(--ie-text-3xl);
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
-            text-align: center;
-            line-height: 1.1;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .nav-tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-tab.active { background: var(--gold); color: #000; }
+        
+        /* Content Sections */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 2rem;
             margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, var(--ie-gold-light) 0%, var(--ie-gold) 50%, #B8941F 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.3));
         }
-
-        .ie-title-sub {
-            font-family: 'Poppins', sans-serif;
-            font-size: var(--ie-text-xl);
-            font-weight: 500;
-            color: var(--ie-blue);
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto 3rem auto;
-            text-shadow: 0 0 20px var(--ie-blue-glow);
-        }
-
-        .ie-title-section {
+        .card-title {
             font-family: 'Montserrat', sans-serif;
-            font-size: var(--ie-text-lg);
+            font-size: 1.2rem;
             font-weight: 700;
-            color: var(--ie-gold);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            color: var(--gold);
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 0.75rem;
         }
-
-        .ie-text-body {
-            font-size: var(--ie-text-base);
-            color: rgba(255, 255, 255, 0.85);
-            margin-bottom: 1.5rem;
-        }
-
-        .ie-text-highlight {
-            color: var(--ie-blue);
-            font-weight: 600;
-        }
-
-        .ie-divider {
-            width: 80px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--ie-gold), transparent);
-            margin: 0 auto 3rem auto;
-            border-radius: 2px;
-            box-shadow: 0 0 15px var(--ie-gold);
-        }
-
-        .ie-card {
-            background: var(--ie-bg-card);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: var(--ie-radius-md);
-            padding: clamp(1.5rem, 3vw, 2.5rem);
-            margin-bottom: 2rem;
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            transition: transform 0.4s var(--ie-ease-out), box-shadow 0.4s var(--ie-ease-out);
-        }
-
-        .ie-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 
-                0 30px 60px rgba(0, 0, 0, 0.5),
-                0 0 30px var(--ie-gold-dim),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            border-color: rgba(212, 175, 55, 0.3);
-        }
-
-        .ie-btn {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 1rem 2.5rem;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            font-size: var(--ie-text-xs);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            border: none;
-            border-radius: var(--ie-radius-sm);
-            cursor: pointer;
-            overflow: hidden;
-            transition: all 0.4s var(--ie-ease-out);
-            text-decoration: none;
-        }
-
-        .ie-btn-primary {
-            background: linear-gradient(135deg, var(--ie-gold) 0%, #B8941F 100%);
-            color: #000;
-            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
-        }
-
-        .ie-btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.5);
-        }
-
-        .ie-btn-secondary {
-            background: transparent;
-            color: var(--ie-blue);
-            border: 1px solid rgba(0, 196, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 196, 255, 0.1);
-        }
-
-        .ie-btn-secondary:hover {
-            background: rgba(0, 196, 255, 0.1);
-            border-color: var(--ie-blue);
-            box-shadow: 0 0 30px rgba(0, 196, 255, 0.3);
-            transform: translateY(-3px);
-        }
-
-        .ie-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+        
+        /* Forms */
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--gold); margin-bottom: 0.5rem; }
+        input, select {
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.6s var(--ie-ease-out);
-        }
-        .ie-btn:hover::before {
-            left: 100%;
-        }
-
-        .ie-feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin: 3rem 0;
-        }
-
-        .ie-feature-item {
-            text-align: center;
-            padding: 2rem;
-            border-radius: var(--ie-radius-md);
-            background: rgba(0, 196, 255, 0.03);
-            border: 1px solid rgba(0, 196, 255, 0.1);
-            transition: all 0.4s var(--ie-ease-out);
-        }
-
-        .ie-feature-item:hover {
-            background: rgba(0, 196, 255, 0.08);
-            border-color: rgba(0, 196, 255, 0.3);
-            transform: translateY(-5px);
-        }
-
-        .ie-feature-icon {
-            font-size: 2.5rem;
-            color: var(--ie-gold);
-            margin-bottom: 1.5rem;
-            display: inline-block;
-            animation: ie-float 6s ease-in-out infinite;
-            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
-        }
-
-        .ie-check-list {
-            list-style: none;
-            margin: 2rem 0;
-        }
-
-        .ie-check-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            margin-bottom: 1.25rem;
-            font-size: var(--ie-text-base);
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .ie-check-list i {
-            color: var(--ie-blue);
-            font-size: 1.2rem;
-            margin-top: 4px;
-            filter: drop-shadow(0 0 8px var(--ie-blue-glow));
-        }
-
-        .ie-reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            filter: blur(10px);
-            transition: opacity 0.8s var(--ie-ease-out), transform 0.8s var(--ie-ease-out), filter 0.8s var(--ie-ease-out);
-        }
-
-        .ie-reveal.ie-active {
-            opacity: 1;
-            transform: translateY(0);
-            filter: blur(0);
-        }
-
-        .ie-stagger-1 { transition-delay: 0.1s; }
-        .ie-stagger-2 { transition-delay: 0.2s; }
-        .ie-stagger-3 { transition-delay: 0.3s; }
-
-        @media (max-width: 768px) {
-            .ie-feature-grid { grid-template-columns: 1fr; }
-            .ie-btn { width: 100%; margin-bottom: 1rem; }
-            .ie-ring-1, .ie-ring-2 { display: none; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        /* Auth & App Containers */
-        .auth-container, .app-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: var(--ie-text-xs);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ie-gold);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--ie-radius-sm);
+            padding: 0.9rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
             color: #fff;
             font-family: 'Poppins', sans-serif;
-            font-size: var(--ie-text-base);
-            transition: all 0.3s var(--ie-ease-out);
         }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--ie-blue);
-            box-shadow: 0 0 20px rgba(0, 196, 255, 0.2);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .tab-container {
-            display: flex;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--ie-radius-sm);
-            padding: 0.25rem;
-            margin-bottom: 2rem;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 0.75rem;
-            background: transparent;
+        input:focus, select:focus { outline: none; border-color: var(--blue); }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.9rem 2rem;
             border: none;
-            color: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
             font-family: 'Montserrat', sans-serif;
-            font-weight: 600;
-            font-size: var(--ie-text-xs);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 700;
+            font-size: 0.9rem;
             cursor: pointer;
-            border-radius: calc(var(--ie-radius-sm) - 2px);
-            transition: all 0.3s var(--ie-ease-out);
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-
-        .tab-btn.active {
-            background: linear-gradient(135deg, var(--ie-gold) 0%, #B8941F 100%);
-            color: #000;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        .btn-primary { background: linear-gradient(135deg, var(--gold), #B8941F); color: #000; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(212,175,55,0.4); }
+        .btn-secondary { background: transparent; border: 1px solid var(--blue); color: var(--blue); }
+        .btn-secondary:hover { background: rgba(0,196,255,0.1); }
+        .btn-logout { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        
+        /* Messages */
+        .msg { padding: 1rem; border-radius: 8px; margin-top: 1rem; display: none; }
+        .msg.show { display: block; }
+        .msg.success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+        .msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        
+        /* Login Screen */
+        .login-container {
+            max-width: 500px;
+            margin: 10vh auto;
+            padding: 2rem;
         }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
-            padding: 1rem;
-            border-radius: var(--ie-radius-sm);
-            margin-top: 1rem;
-            font-size: var(--ie-text-xs);
-        }
-
-        .success-message {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: #22c55e;
-            padding: 1rem;
-            border-radius: var(--ie-radius-sm);
-            margin-top: 1rem;
-            font-size: var(--ie-text-xs);
-        }
+        .login-title { text-align: center; margin-bottom: 2rem; }
+        .login-title h1 { font-size: 2.5rem; color: var(--gold); margin-bottom: 0.5rem; }
+        .login-title p { color: var(--blue); }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+        .tab { flex: 1; padding: 0.9rem; background: rgba(255,255,255,0.05); border: none; color: rgba(255,255,255,0.6); font-weight: 600; cursor: pointer; border-radius: 8px; }
+        .tab.active { background: var(--gold); color: #000; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="ie-cinematic-bg"></div>
-    <div class="ie-noise-overlay"></div>
-    <div class="ie-engine-ring ie-ring-1"></div>
-    <div class="ie-engine-ring ie-ring-2"></div>
-    <div class="ie-engine-ring ie-ring-3"></div>
 
-    <main class="ie-container">
-        <!-- AUTHENTICATION SECTION -->
-        <div id="authContainer" class="auth-container ie-reveal ie-active">
-            <div class="ie-card">
-                <div class="ie-title-main" style="font-size: var(--ie-text-2xl); margin-bottom: 0.5rem;">AI Video Studio</div>
-                <div class="ie-title-sub" style="font-size: var(--ie-text-base); margin-bottom: 2rem;">Transform PDFs into Cinematic Videos</div>
-                
-                <div class="tab-container">
-                    <button class="tab-btn active" onclick="showLogin()">Login</button>
-                    <button class="tab-btn" onclick="showSignup()">Sign Up</button>
-                </div>
-
-                <form id="authForm" onsubmit="handleAuth(event)">
-                    <div id="nameField" class="form-group hidden">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" id="fullName" class="form-input" placeholder="Enter your full name">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Email Address</label>
-                        <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
-                    </div>
-
-                    <button type="submit" class="ie-btn ie-btn-primary" style="width: 100%; margin-top: 1rem;">
-                        <i class="fas fa-lock"></i> <span id="submitText">Access Account</span>
-                    </button>
-                </form>
-
-                <div id="authError" class="error-message hidden"></div>
-            </div>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-title">
+            <h1>AI VIDEO STUDIO</h1>
+            <p>Transform PDFs into Cinematic Videos</p>
         </div>
+        
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+            
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div id="nameField" class="form-group hidden">
+                    <label>Full Name</label>
+                    <input type="text" id="fullName" placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-lock"></i> <span id="authBtnText">Access Account</span>
+                </button>
+            </form>
+            <div id="authMsg" class="msg"></div>
+        </div>
+    </div>
 
-        <!-- APP SECTION -->
-        <div id="appContainer" class="app-container hidden">
-            <header class="ie-reveal ie-active" style="text-align: center; margin-bottom: 3rem;">
-                <div class="ie-title-main" style="font-size: var(--ie-text-2xl);">AI Video Studio</div>
-                <div class="ie-divider"></div>
-                <button onclick="logout()" class="ie-btn ie-btn-secondary" style="margin-top: 1rem;">
+    <!-- APP DASHBOARD -->
+    <div id="appScreen" class="container hidden">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">AI VIDEO STUDIO</div>
+            <div class="user-info">
+                <span class="user-email" id="userEmail">user@email.com</span>
+                <button class="btn btn-logout" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
-            </header>
-
-            <div class="ie-card ie-reveal ie-stagger-1">
-                <div class="ie-title-section">
-                    <i class="fas fa-file-pdf" style="color: var(--ie-blue);"></i>
-                    Upload Your Presentation
-                </div>
-                <div class="ie-text-body">
-                    Transform your PDF slides into <span class="ie-text-highlight">professional, voice-over videos</span> using AI. Our engine extracts content, generates scripts, and creates cinematic videos automatically.
-                </div>
-
-                <div class="form-group" style="margin-top: 2rem;">
-                    <label class="form-label">Select PDF File</label>
-                    <input type="file" id="pdfFile" accept=".pdf" class="form-input" style="padding: 1.5rem;">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Video Language</label>
-                    <select id="language" class="form-input">
-                        <option value="en">English</option>
-                        <option value="ar">Arabic</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="ie-card ie-reveal ie-stagger-2">
-                <div class="ie-title-section">
-                    <i class="fas fa-key" style="color: var(--ie-gold);"></i>
-                    Cartesia API Configuration
-                </div>
-                <div class="ie-text-body">
-                    Enter your Cartesia credentials for AI voice generation. Your keys are encrypted and never stored.
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">API Key</label>
-                    <input type="password" id="cartesiaApiKey" class="form-input" placeholder="sk_live_..." oninput="this.value = this.value.trim()">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Voice ID</label>
-                    <input type="text" id="cartesiaVoiceId" class="form-input" value="393e1d0f-483d-44e2-81d8-108b611c7804" oninput="this.value = this.value.trim()">
-                </div>
-            </div>
-
-            <div class="ie-card ie-reveal ie-stagger-3" style="text-align: center;">
-                <button onclick="generateVideo()" class="ie-btn ie-btn-primary" style="min-width: 250px; font-size: var(--ie-text-base); padding: 1.25rem 2.5rem;">
-                    <i class="fas fa-magic"></i> Generate Video
-                </button>
-                <div id="appStatus" class="success-message hidden" style="margin-top: 1.5rem;"></div>
-                <div id="appError" class="error-message hidden" style="margin-top: 1.5rem;"></div>
-            </div>
-
-            <div class="ie-feature-grid ie-reveal">
-                <div class="ie-feature-item">
-                    <div class="ie-feature-icon"><i class="fas fa-bolt"></i></div>
-                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">AI-Powered</h3>
-                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Automatic script generation and voice synthesis</p>
-                </div>
-                
-                <div class="ie-feature-item">
-                    <div class="ie-feature-icon"><i class="fas fa-palette"></i></div>
-                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">Cinematic Quality</h3>
-                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Professional-grade video output</p>
-                </div>
-                
-                <div class="ie-feature-item">
-                    <div class="ie-feature-icon"><i class="fas fa-clock"></i></div>
-                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">Fast Processing</h3>
-                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Generate videos in minutes, not hours</p>
-                </div>
             </div>
         </div>
-    </main>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('generate')">
+                <i class="fas fa-magic"></i> Generate Video
+            </button>
+            <button class="nav-tab" onclick="switchTab('settings')">
+                <i class="fas fa-cog"></i> API Settings
+            </button>
+            <button class="nav-tab" onclick="switchTab('password')">
+                <i class="fas fa-lock"></i> Change Password
+            </button>
+        </div>
+
+        <!-- Generate Video Tab -->
+        <div id="generateTab" class="tab-content active">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-file-pdf" style="color: var(--blue);"></i>
+                    Upload Your Presentation
+                </div>
+                <p style="margin-bottom: 1.5rem; color: rgba(255,255,255,0.8);">
+                    Transform your PDF slides into <span style="color: var(--blue);">professional, voice-over videos</span> using AI.
+                </p>
+                
+                <div class="form-group">
+                    <label>Select PDF File</label>
+                    <input type="file" id="pdfFile" accept=".pdf">
+                </div>
+                
+                <div class="form-group">
+                    <label>Language</label>
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="ar">Arabic</option>
+                        <option value="fr">French</option>
+                        <option value="es">Spanish</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" onclick="generateVideo()">
+                    <i class="fas fa-magic"></i> Generate Video
+                </button>
+                <div id="generateMsg" class="msg"></div>
+            </div>
+        </div>
+
+        <!-- API Settings Tab -->
+        <div id="settingsTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-key" style="color: var(--gold);"></i>
+                    Cartesia API Configuration
+                </div>
+                <p style="margin-bottom: 1.5rem;">Your credentials are encrypted and saved to your profile.</p>
+                
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" placeholder="sk_live_...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Voice ID</label>
+                    <input type="text" id="voiceId" value="393e1d0f-483d-44e2-81d8-108b611c7804">
+                </div>
+                
+                <button class="btn btn-secondary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Credentials
+                </button>
+                <div id="settingsMsg" class="msg"></div>
+            </div>
+        </div>
+
+        <!-- Change Password Tab -->
+        <div id="passwordTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fas fa-lock" style="color: var(--gold);"></i>
+                    Change Password
+                </div>
+                <p style="margin-bottom: 1.5rem;">Update your account password securely.</p>
+                
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword" placeholder="Minimum 6 characters">
+                </div>
+                
+                <button class="btn btn-secondary" onclick="changePassword()">
+                    <i class="fas fa-sync-alt"></i> Update Password
+                </button>
+                <div id="passwordMsg" class="msg"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        let isLogin = true;
+        let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
         
-        function showLogin() { 
-            isLogin = true; 
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.querySelectorAll('.tab-btn')[1].classList.remove('active');
-            document.getElementById('nameField').classList.add('hidden');
-            document.getElementById('submitText').textContent = 'Access Account';
-            document.getElementById('authError').classList.add('hidden');
-        }
-        
-        function showSignup() { 
-            isLogin = false; 
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.querySelectorAll('.tab-btn')[0].classList.remove('active');
-            document.getElementById('nameField').classList.remove('hidden');
-            document.getElementById('submitText').textContent = 'Create Account';
-            document.getElementById('authError').classList.add('hidden');
+        window.onload = () => { if (currentUser) showApp(); };
+
+        // Auth Functions
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.querySelectorAll('.login-container .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('nameField').classList.toggle('hidden', isLogin);
+            document.getElementById('authBtnText').textContent = isLogin ? 'Access Account' : 'Create Account';
         }
 
         async function handleAuth(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const url = isLogin ? '/login' : '/signup';
-            const body = isLogin ? { email, password } : { 
-                email, 
-                password, 
-                full_name: document.getElementById('fullName').value.trim() 
+            const url = event.target.querySelector('.tab.active').textContent === 'Login' ? '/login' : '/signup';
+            const body = url === '/login' ? { email, password } : { 
+                email, password, full_name: document.getElementById('fullName').value 
             };
             
+            const msg = document.getElementById('authMsg');
             try {
-                const res = await fetch(url, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(body) 
+                const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
+                
+                if (url === '/login') {
+                    currentUser = { user_id: data.user_id, email: data.email };
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    localStorage.setItem('userId', data.user_id);
+                    showApp();
+                } else {
+                    msg.textContent = '✅ Account created! Please login.';
+                    msg.className = 'msg success show';
+                }
+            } catch (err) {
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'msg error show';
+            }
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = currentUser.email;
+            loadSettings();
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('userId');
+            location.reload();
+        }
+
+        // Tab Functions
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        // Settings Functions
+        async function loadSettings() {
+            try {
+                const res = await fetch(`/user/settings?user_id=${currentUser.user_id}`);
+                const data = await res.json();
+                if (data.cartesia_api_key) document.getElementById('apiKey').value = data.cartesia_api_key;
+                if (data.cartesia_voice_id) document.getElementById('voiceId').value = data.cartesia_voice_id;
+            } catch (err) { console.log('Settings load error', err); }
+        }
+
+        async function saveSettings() {
+            const msg = document.getElementById('settingsMsg');
+            try {
+                const res = await fetch(`/user/settings?user_id=${currentUser.user_id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        cartesia_api_key: document.getElementById('apiKey').value,
+                        cartesia_voice_id: document.getElementById('voiceId').value
+                    })
+                });
+                if (!res.ok) throw new Error('Failed to save');
+                msg.textContent = '✅ Credentials saved successfully!';
+                msg.className = 'msg success show';
+                setTimeout(() => msg.classList.remove('show'), 3000);
+            } catch (err) {
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'msg error show';
+            }
+        }
+
+        // Change Password Function
+        async function changePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const msg = document.getElementById('passwordMsg');
+            
+            if (!newPassword || newPassword.length < 6) {
+                msg.textContent = 'Password must be at least 6 characters';
+                msg.className = 'msg error show';
+                return;
+            }
+
+            try {
+                const res = await fetch('/change-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: currentUser.user_id, new_password: newPassword })
                 });
                 const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
                 
-                if (!res.ok) throw new Error(data.detail || 'Authentication failed');
-                
-                if (isLogin) {
-                    localStorage.setItem('token', data.access_token);
-                    localStorage.setItem('userId', data.user_id);
-                }
-                
-                document.getElementById('authContainer').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-                document.getElementById('authError').classList.add('hidden');
+                msg.textContent = '✅ Password updated successfully!';
+                msg.className = 'msg success show';
+                document.getElementById('newPassword').value = '';
+                setTimeout(() => msg.classList.remove('show'), 3000);
             } catch (err) {
-                const errEl = document.getElementById('authError');
-                errEl.textContent = err.message;
-                errEl.classList.remove('hidden');
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'msg error show';
             }
         }
 
-        function logout() { 
-            localStorage.removeItem('token'); 
-            localStorage.removeItem('userId');
-            location.reload(); 
-        }
-
+        // Video Generation
         async function generateVideo() {
-            const fileInput = document.getElementById('pdfFile');
-            const apiKey = document.getElementById('cartesiaApiKey').value.trim();
-            const voiceId = document.getElementById('cartesiaVoiceId').value.trim();
+            const file = document.getElementById('pdfFile').files[0];
+            const apiKey = document.getElementById('apiKey').value;
+            const msg = document.getElementById('generateMsg');
             
-            if (!fileInput.files[0]) { 
-                alert('Please select a PDF file'); 
-                return; 
+            if (!file || !apiKey) {
+                msg.textContent = 'Please select a PDF and enter your API Key';
+                msg.className = 'msg error show';
+                return;
             }
-            
-            if (!apiKey) { 
-                alert('Please enter your Cartesia API key'); 
-                return; 
-            }
-            
-            const statusEl = document.getElementById('appStatus');
-            const errorEl = document.getElementById('appError');
-            
-            statusEl.textContent = '🚀 Initializing video generation engine...';
-            statusEl.classList.remove('hidden');
-            errorEl.classList.add('hidden');
-            
+
+            msg.textContent = '🚀 Starting video generation...';
+            msg.className = 'msg success show';
+
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('file', file);
             formData.append('language', document.getElementById('language').value);
             formData.append('cartesia_api_key', apiKey);
-            formData.append('cartesia_voice_id', voiceId);
+            formData.append('cartesia_voice_id', document.getElementById('voiceId').value);
+            formData.append('user_id', currentUser.user_id);
 
             try {
                 const res = await fetch('/upload', { method: 'POST', body: formData });
-                
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.detail || 'Generation failed');
-                }
-                
                 const data = await res.json();
-                statusEl.innerHTML = `✅ <strong>Success!</strong> Video generation started. Job ID: <strong>${data.job_id}</strong><br><small>${data.slides} slides detected. Processing time: ~${data.slides * 2} minutes</small>`;
+                if (!res.ok) throw new Error(data.detail);
                 
-                fileInput.value = '';
-                document.getElementById('cartesiaApiKey').value = '';
-                
+                msg.innerHTML = `✅ Job started! ID: <strong>${data.job_id}</strong>`;
+                document.getElementById('pdfFile').value = '';
             } catch (err) {
-                errorEl.textContent = 'Error: ' + err.message;
-                errorEl.classList.remove('hidden');
-                statusEl.classList.add('hidden');
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'msg error show';
             }
         }
-
-        // Scroll reveal
-        document.addEventListener('DOMContentLoaded', () => {
-            const observerOptions = {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.1
-            };
-
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('ie-active');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, observerOptions);
-
-            document.querySelectorAll('.ie-reveal').forEach(el => {
-                observer.observe(el);
-            });
-
-            // Check existing auth
-            const token = localStorage.getItem('token');
-            if (token) {
-                document.getElementById('authContainer').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-            }
-        });
-
-        // Parallax effect
-        document.addEventListener('mousemove', (e) => {
-            const rings = document.querySelectorAll('.ie-engine-ring');
-            const x = (window.innerWidth - e.pageX * 2) / 100;
-            const y = (window.innerHeight - e.pageY * 2) / 100;
-
-            rings.forEach((ring, index) => {
-                const speed = (index + 1) * 0.5;
-                ring.style.transform = `translate(${x * speed}px, ${y * speed}px) rotate(${index * 120}deg)`;
-            });
-        });
     </script>
 </body>
 </html>
