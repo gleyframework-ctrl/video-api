@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from supabase_client import supabase
 
@@ -16,7 +16,8 @@ class UserLogin(BaseModel):
 @router.post("/signup")
 async def signup(user: UserSignup):
     try:
-        response = supabase.auth.sign_up({
+        # Create user in Supabase Auth
+        auth_response = supabase.auth.sign_up({
             "email": user.email,
             "password": user.password,
             "options": {
@@ -26,16 +27,32 @@ async def signup(user: UserSignup):
             }
         })
         
-        if response.user:
-            return {
-                "message": "User created successfully",
-                "user_id": response.user.id
-            }
-        else:
-            raise HTTPException(status_code=400, detail="Signup failed")
-            
+        if not auth_response.user:
+            raise HTTPException(status_code=400, detail="Failed to create user")
+        
+        # Create user profile in database
+        try:
+            supabase.table("user_profiles").insert({
+                "id": auth_response.user.id,
+                "email": user.email,
+                "full_name": user.full_name,
+                "created_at": "now()"
+            }).execute()
+        except Exception as db_error:
+            print(f"Profile creation error: {db_error}")
+            # Don't fail signup if profile creation fails
+        
+        return {
+            "message": "Account created successfully",
+            "user_id": auth_response.user.id,
+            "email": auth_response.user.email
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"Signup error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Signup failed: {str(e)}")
 
 @router.post("/login")
 async def login(user: UserLogin):
@@ -45,14 +62,19 @@ async def login(user: UserLogin):
             "password": user.password
         })
         
-        if response.session:
-            return {
-                "message": "Login successful",
-                "access_token": response.session.access_token,
-                "user_id": response.user.id
-            }
-        else:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-            
+        if not response.session or not response.user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        return {
+            "message": "Login successful",
+            "access_token": response.session.access_token,
+            "refresh_token": response.session.refresh_token,
+            "user_id": response.user.id,
+            "email": response.user.email
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"Login error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid email or password")
