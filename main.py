@@ -45,7 +45,8 @@ async def upload_pdf(
     file: UploadFile = File(...),
     language: str = Form("en"),
     cartesia_api_key: str = Form(...),
-    cartesia_voice_id: str = Form(...)
+    cartesia_voice_id: str = Form(...),
+    user_id: str = Form(None)
 ):
     """Upload PDF and generate video"""
     if not file.filename or not file.filename.lower().endswith('.pdf'):
@@ -54,7 +55,7 @@ async def upload_pdf(
     # Validate and clean API key
     api_key = cartesia_api_key.strip()
     if not api_key.startswith('sk_'):
-        raise HTTPException(status_code=400, detail="Invalid Cartesia API key format")
+        raise HTTPException(status_code=400, detail="Invalid Cartesia API key format. Must start with 'sk_'")
     
     job_id = str(uuid.uuid4())[:8]
     pdf_path = f"{UPLOAD_DIR}/{job_id}.pdf"
@@ -93,6 +94,22 @@ async def upload_pdf(
         
         log(f"Job {job_id} started with {len(image_paths)} slides")
         
+        # Save to database if user_id provided
+        if user_id:
+            try:
+                from supabase_client import supabase
+                supabase.table("videos").insert({
+                    "user_id": user_id,
+                    "job_id": job_id,
+                    "status": "processing",
+                    "slides_count": len(image_paths),
+                    "language": language,
+                    "title": file.filename
+                }).execute()
+                log(f"Video job {job_id} saved to database for user {user_id}")
+            except Exception as db_error:
+                print(f"Database error: {db_error}")
+        
         # Start video generation in background
         output_video = f"{output_folder}/final_video.mp4"
         background_tasks.add_task(
@@ -119,16 +136,6 @@ async def upload_pdf(
             os.remove(pdf_path)
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-@app.get("/status/{job_id}")
-async def get_status(job_id: str):
-    """Get job status"""
-    status_file = f"{OUTPUT_DIR}/{job_id}/status.json"
-    if not os.path.exists(status_file):
-        raise HTTPException(status_code=404, detail="Job not found")
-    
-    with open(status_file, "r") as f:
-        return JSONResponse(json.load(f))
-
 @app.get("/download/{job_id}/final_video.mp4")
 async def download_video(job_id: str):
     """Download generated video"""
@@ -141,6 +148,18 @@ async def download_video(job_id: str):
         media_type="video/mp4", 
         filename=f"video_{job_id}.mp4"
     )
+
+@app.get("/video/{job_id}/status")
+async def get_video_status(job_id: str):
+    """Get video generation status"""
+    video_path = f"{OUTPUT_DIR}/{job_id}/final_video.mp4"
+    status = "completed" if os.path.exists(video_path) else "processing"
+    
+    return JSONResponse({
+        "job_id": job_id,
+        "status": status,
+        "download_url": f"/download/{job_id}/final_video.mp4" if status == "completed" else None
+    })
 
 if __name__ == "__main__":
     import uvicorn
