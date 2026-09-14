@@ -3,20 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Income Engine | Ultra-Premium Brand Template</title>
+    <title>AI Video Studio | Premium Video Generation Platform</title>
     
-    <!-- Premium Font Loading with Display Swap for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* ==========================================================================
-           INCOME ENGINE: ULTRA-PREMIUM DESIGN SYSTEM (Googol-Plex Tier)
-           ========================================================================== */
         :root {
-            /* Brand Palette */
             --ie-gold: #D4AF37;
             --ie-gold-light: #F4D03F;
             --ie-gold-dim: rgba(212, 175, 55, 0.15);
@@ -25,13 +20,11 @@
             --ie-bg-deep: #0a0f10;
             --ie-bg-card: rgba(20, 30, 32, 0.4);
             
-            /* Advanced Spacing & Layout */
             --ie-radius-sm: 8px;
             --ie-radius-md: 16px;
             --ie-radius-lg: 24px;
             --ie-container-max: 1200px;
             
-            /* Fluid Typography (Scales perfectly from mobile to 4K) */
             --ie-text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
             --ie-text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
             --ie-text-lg: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
@@ -39,14 +32,10 @@
             --ie-text-2xl: clamp(2rem, 1.5rem + 2vw, 3.5rem);
             --ie-text-3xl: clamp(2.5rem, 2rem + 3vw, 5rem);
 
-            /* Animation Curves (Apple-style smooth easing) */
             --ie-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
             --ie-ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        /* ==========================================================================
-           GLOBAL RESET & BASE
-           ========================================================================== */
         *, *::before, *::after {
             margin: 0;
             padding: 0;
@@ -68,9 +57,6 @@
             position: relative;
         }
 
-        /* ==========================================================================
-           CINEMATIC BACKGROUND SYSTEM (Noise + Mesh Gradients)
-           ========================================================================== */
         .ie-cinematic-bg {
             position: fixed;
             top: 0;
@@ -84,7 +70,6 @@
                 linear-gradient(180deg, #0a0f10 0%, #121a1b 50%, #000000 100%);
         }
 
-        /* Film Grain Overlay for Premium Tactile Feel (Prevents color banding) */
         .ie-noise-overlay {
             position: fixed;
             top: 0;
@@ -97,7 +82,6 @@
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
-        /* Abstract Engine Rings (Modern, high-tech alternative to cartoon gears) */
         .ie-engine-ring {
             position: absolute;
             border: 1px solid rgba(212, 175, 55, 0.1);
@@ -112,9 +96,6 @@
         @keyframes ie-spin { to { transform: rotate(360deg); } }
         @keyframes ie-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
-        /* ==========================================================================
-           LAYOUT & CONTAINERS
-           ========================================================================== */
         .ie-container {
             width: 100%;
             max-width: var(--ie-container-max);
@@ -124,9 +105,6 @@
             z-index: 1;
         }
 
-        /* ==========================================================================
-           ADVANCED TYPOGRAPHY
-           ========================================================================== */
         .ie-title-main {
             font-family: 'Montserrat', sans-serif;
             font-size: var(--ie-text-3xl);
@@ -136,7 +114,6 @@
             text-align: center;
             line-height: 1.1;
             margin-bottom: 1.5rem;
-            /* Premium Gold Gradient Text */
             background: linear-gradient(135deg, var(--ie-gold-light) 0%, var(--ie-gold) 50%, #B8941F 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -188,15 +165,12 @@
             box-shadow: 0 0 15px var(--ie-gold);
         }
 
-        /* ==========================================================================
-           GLASSMORPHISM 2.0 CARDS
-           ========================================================================== */
         .ie-card {
             background: var(--ie-bg-card);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-top: 1px solid rgba(255, 255, 255, 0.15); /* Top highlight */
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: var(--ie-radius-md);
             padding: clamp(1.5rem, 3vw, 2.5rem);
             margin-bottom: 2rem;
@@ -215,9 +189,6 @@
             border-color: rgba(212, 175, 55, 0.3);
         }
 
-        /* ==========================================================================
-           PREMIUM BUTTONS (With Shine Effect)
-           ========================================================================== */
         .ie-btn {
             position: relative;
             display: inline-flex;
@@ -263,7 +234,6 @@
             transform: translateY(-3px);
         }
 
-        /* Button Shine Animation */
         .ie-btn::before {
             content: '';
             position: absolute;
@@ -278,9 +248,6 @@
             left: 100%;
         }
 
-        /* ==========================================================================
-           ADVANCED LISTS & FEATURES
-           ========================================================================== */
         .ie-feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -333,9 +300,6 @@
             filter: drop-shadow(0 0 8px var(--ie-blue-glow));
         }
 
-        /* ==========================================================================
-           SCROLL REVEAL ANIMATIONS
-           ========================================================================== */
         .ie-reveal {
             opacity: 0;
             transform: translateY(30px);
@@ -349,18 +313,14 @@
             filter: blur(0);
         }
 
-        /* Stagger children */
         .ie-stagger-1 { transition-delay: 0.1s; }
         .ie-stagger-2 { transition-delay: 0.2s; }
         .ie-stagger-3 { transition-delay: 0.3s; }
 
-        /* ==========================================================================
-           RESPONSIVE ADJUSTMENTS
-           ========================================================================== */
         @media (max-width: 768px) {
             .ie-feature-grid { grid-template-columns: 1fr; }
             .ie-btn { width: 100%; margin-bottom: 1rem; }
-            .ie-ring-1, .ie-ring-2 { display: none; } /* Hide heavy animations on mobile for performance */
+            .ie-ring-1, .ie-ring-2 { display: none; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -370,108 +330,341 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* Auth & App Containers */
+        .auth-container, .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: var(--ie-text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ie-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--ie-radius-sm);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+            font-size: var(--ie-text-base);
+            transition: all 0.3s var(--ie-ease-out);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--ie-blue);
+            box-shadow: 0 0 20px rgba(0, 196, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tab-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--ie-radius-sm);
+            padding: 0.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: var(--ie-text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            border-radius: calc(var(--ie-radius-sm) - 2px);
+            transition: all 0.3s var(--ie-ease-out);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--ie-gold) 0%, #B8941F 100%);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 1rem;
+            border-radius: var(--ie-radius-sm);
+            margin-top: 1rem;
+            font-size: var(--ie-text-xs);
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+            padding: 1rem;
+            border-radius: var(--ie-radius-sm);
+            margin-top: 1rem;
+            font-size: var(--ie-text-xs);
+        }
     </style>
 </head>
 <body>
-
-    <!-- CINEMATIC BACKGROUND LAYERS -->
     <div class="ie-cinematic-bg"></div>
     <div class="ie-noise-overlay"></div>
     <div class="ie-engine-ring ie-ring-1"></div>
     <div class="ie-engine-ring ie-ring-2"></div>
     <div class="ie-engine-ring ie-ring-3"></div>
 
-    <!-- MAIN CONTENT -->
     <main class="ie-container">
-        
-        <!-- ===== HERO SECTION ===== -->
-        <header class="ie-reveal" style="text-align: center; padding-top: 4rem;">
-            <div class="ie-title-main">The Income Engine</div>
-            <div class="ie-divider"></div>
-            <div class="ie-title-sub">Architect Your Wealth. Automate Your Freedom. Scale Without Limits.</div>
-            
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
-                <a href="#features" class="ie-btn ie-btn-primary">
-                    <i class="fas fa-rocket"></i> Initialize Engine
-                </a>
-                <a href="#community" class="ie-btn ie-btn-secondary">
-                    <i class="fas fa-users"></i> Join Community
-                </a>
-            </div>
-        </header>
-
-        <!-- ===== FEATURES GRID ===== -->
-        <section id="features" class="ie-feature-grid">
-            <div class="ie-feature-item ie-reveal ie-stagger-1">
-                <div class="ie-feature-icon"><i class="fas fa-bolt"></i></div>
-                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Rapid Deployment</h3>
-                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Launch high-converting funnels in hours, not months. Our proven frameworks eliminate guesswork.</p>
-            </div>
-            
-            <div class="ie-feature-item ie-reveal ie-stagger-2">
-                <div class="ie-feature-icon"><i class="fas fa-chart-line"></i></div>
-                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Compound Growth</h3>
-                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Systems designed to scale exponentially. Turn one-time buyers into lifetime subscribers.</p>
-            </div>
-            
-            <div class="ie-feature-item ie-reveal ie-stagger-3">
-                <div class="ie-feature-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Elite Security</h3>
-                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Enterprise-grade infrastructure protecting your data, your revenue, and your reputation.</p>
-            </div>
-        </section>
-
-        <!-- ===== DEEP DIVE CARD ===== -->
-        <section class="ie-reveal">
+        <!-- AUTHENTICATION SECTION -->
+        <div id="authContainer" class="auth-container ie-reveal ie-active">
             <div class="ie-card">
-                <div class="ie-title-section">
-                    <i class="fas fa-cogs" style="color: var(--ie-blue);"></i>
-                    Core Architecture
-                </div>
-                <p class="ie-text-body">
-                    The Income Engine isn't just a course; it's a <span class="ie-text-highlight">complete operational overhaul</span> of how you generate revenue. We replace outdated, manual processes with sleek, automated pipelines.
-                </p>
+                <div class="ie-title-main" style="font-size: var(--ie-text-2xl); margin-bottom: 0.5rem;">AI Video Studio</div>
+                <div class="ie-title-sub" style="font-size: var(--ie-text-base); margin-bottom: 2rem;">Transform PDFs into Cinematic Videos</div>
                 
-                <ul class="ie-check-list">
-                    <li>
-                        <i class="fas fa-check-circle"></i>
-                        <span><strong>Plug-and-Play Templates:</strong> Deploy proven copy and design frameworks instantly.</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check-circle"></i>
-                        <span><strong>AI-Powered Optimization:</strong> Let machine learning refine your conversion rates 24/7.</span>
-                    </li>
-                    <li>
-                        <i class="fas fa-check-circle"></i>
-                        <span><strong>Elite Mastermind Access:</strong> Network with 7-figure operators who are actively scaling.</span>
-                    </li>
-                </ul>
+                <div class="tab-container">
+                    <button class="tab-btn active" onclick="showLogin()">Login</button>
+                    <button class="tab-btn" onclick="showSignup()">Sign Up</button>
+                </div>
 
-                <div style="text-align: center; margin-top: 2.5rem;">
-                    <button class="ie-btn ie-btn-primary" style="min-width: 250px;">
-                        Activate Full Access <i class="fas fa-arrow-right"></i>
+                <form id="authForm" onsubmit="handleAuth(event)">
+                    <div id="nameField" class="form-group hidden">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="fullName" class="form-input" placeholder="Enter your full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" class="ie-btn ie-btn-primary" style="width: 100%; margin-top: 1rem;">
+                        <i class="fas fa-lock"></i> <span id="submitText">Access Account</span>
                     </button>
+                </form>
+
+                <div id="authError" class="error-message hidden"></div>
+            </div>
+        </div>
+
+        <!-- APP SECTION -->
+        <div id="appContainer" class="app-container hidden">
+            <header class="ie-reveal ie-active" style="text-align: center; margin-bottom: 3rem;">
+                <div class="ie-title-main" style="font-size: var(--ie-text-2xl);">AI Video Studio</div>
+                <div class="ie-divider"></div>
+                <button onclick="logout()" class="ie-btn ie-btn-secondary" style="margin-top: 1rem;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </header>
+
+            <div class="ie-card ie-reveal ie-stagger-1">
+                <div class="ie-title-section">
+                    <i class="fas fa-file-pdf" style="color: var(--ie-blue);"></i>
+                    Upload Your Presentation
+                </div>
+                <div class="ie-text-body">
+                    Transform your PDF slides into <span class="ie-text-highlight">professional, voice-over videos</span> using AI. Our engine extracts content, generates scripts, and creates cinematic videos automatically.
+                </div>
+
+                <div class="form-group" style="margin-top: 2rem;">
+                    <label class="form-label">Select PDF File</label>
+                    <input type="file" id="pdfFile" accept=".pdf" class="form-input" style="padding: 1.5rem;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Video Language</label>
+                    <select id="language" class="form-input">
+                        <option value="en">English</option>
+                        <option value="ar">Arabic</option>
+                    </select>
                 </div>
             </div>
-        </section>
 
-        <!-- ===== FOOTER / KEYWORDS ===== -->
-        <footer class="ie-reveal" style="text-align: center; padding: 3rem 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 4rem;">
-            <p style="font-size: var(--ie-text-xs); color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase;">
-                Income Engine &copy; 2024. All Systems Operational.
-            </p>
-            <div style="margin-top: 1rem; font-size: 0.8rem; color: rgba(255,255,255,0.2);">
-                Premium Branding | High-Ticket Funnels | Automated Wealth
+            <div class="ie-card ie-reveal ie-stagger-2">
+                <div class="ie-title-section">
+                    <i class="fas fa-key" style="color: var(--ie-gold);"></i>
+                    Cartesia API Configuration
+                </div>
+                <div class="ie-text-body">
+                    Enter your Cartesia credentials for AI voice generation. Your keys are encrypted and never stored.
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="password" id="cartesiaApiKey" class="form-input" placeholder="sk_live_..." oninput="this.value = this.value.trim()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Voice ID</label>
+                    <input type="text" id="cartesiaVoiceId" class="form-input" value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" oninput="this.value = this.value.trim()">
+                </div>
             </div>
-        </footer>
 
+            <div class="ie-card ie-reveal ie-stagger-3" style="text-align: center;">
+                <button onclick="generateVideo()" class="ie-btn ie-btn-primary" style="min-width: 250px; font-size: var(--ie-text-base); padding: 1.25rem 2.5rem;">
+                    <i class="fas fa-magic"></i> Generate Video
+                </button>
+                <div id="appStatus" class="success-message hidden" style="margin-top: 1.5rem;"></div>
+                <div id="appError" class="error-message hidden" style="margin-top: 1.5rem;"></div>
+            </div>
+
+            <div class="ie-feature-grid ie-reveal">
+                <div class="ie-feature-item">
+                    <div class="ie-feature-icon"><i class="fas fa-bolt"></i></div>
+                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">AI-Powered</h3>
+                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Automatic script generation and voice synthesis</p>
+                </div>
+                
+                <div class="ie-feature-item">
+                    <div class="ie-feature-icon"><i class="fas fa-palette"></i></div>
+                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">Cinematic Quality</h3>
+                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Professional-grade video output</p>
+                </div>
+                
+                <div class="ie-feature-item">
+                    <div class="ie-feature-icon"><i class="fas fa-clock"></i></div>
+                    <h3 class="ie-title-section" style="justify-content: center; font-size: 1.1rem;">Fast Processing</h3>
+                    <p class="ie-text-body" style="font-size: 0.9rem; margin: 0;">Generate videos in minutes, not hours</p>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <!-- ==========================================================================
-         ADVANCED INTERACTION SCRIPTS
-         ========================================================================== -->
     <script>
-        // 1. Intersection Observer for Scroll-Triggered Reveals (Hardware Accelerated)
+        let isLogin = true;
+        
+        function showLogin() { 
+            isLogin = true; 
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.querySelectorAll('.tab-btn')[1].classList.remove('active');
+            document.getElementById('nameField').classList.add('hidden');
+            document.getElementById('submitText').textContent = 'Access Account';
+            document.getElementById('authError').classList.add('hidden');
+        }
+        
+        function showSignup() { 
+            isLogin = false; 
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.querySelectorAll('.tab-btn')[0].classList.remove('active');
+            document.getElementById('nameField').classList.remove('hidden');
+            document.getElementById('submitText').textContent = 'Create Account';
+            document.getElementById('authError').classList.add('hidden');
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const url = isLogin ? '/login' : '/signup';
+            const body = isLogin ? { email, password } : { 
+                email, 
+                password, 
+                full_name: document.getElementById('fullName').value.trim() 
+            };
+            
+            try {
+                const res = await fetch(url, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(body) 
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+                
+                if (isLogin) {
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('userId', data.user_id);
+                }
+                
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+                document.getElementById('authError').classList.add('hidden');
+            } catch (err) {
+                const errEl = document.getElementById('authError');
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function logout() { 
+            localStorage.removeItem('token'); 
+            localStorage.removeItem('userId');
+            location.reload(); 
+        }
+
+        async function generateVideo() {
+            const fileInput = document.getElementById('pdfFile');
+            const apiKey = document.getElementById('cartesiaApiKey').value.trim();
+            const voiceId = document.getElementById('cartesiaVoiceId').value.trim();
+            
+            if (!fileInput.files[0]) { 
+                alert('Please select a PDF file'); 
+                return; 
+            }
+            
+            if (!apiKey) { 
+                alert('Please enter your Cartesia API key'); 
+                return; 
+            }
+            
+            const statusEl = document.getElementById('appStatus');
+            const errorEl = document.getElementById('appError');
+            
+            statusEl.textContent = ' Initializing video generation engine...';
+            statusEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('language', document.getElementById('language').value);
+            formData.append('cartesia_api_key', apiKey);
+            formData.append('cartesia_voice_id', voiceId);
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.detail || 'Generation failed');
+                }
+                
+                const data = await res.json();
+                statusEl.innerHTML = `✅ <strong>Success!</strong> Video generation started. Job ID: <strong>${data.job_id}</strong><br><small>${data.slides} slides detected. Processing time: ~${data.slides * 2} minutes</small>`;
+                
+                fileInput.value = '';
+                document.getElementById('cartesiaApiKey').value = '';
+                
+            } catch (err) {
+                errorEl.textContent = 'Error: ' + err.message;
+                errorEl.classList.remove('hidden');
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        // Scroll reveal
         document.addEventListener('DOMContentLoaded', () => {
             const observerOptions = {
                 root: null,
@@ -483,7 +676,7 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('ie-active');
-                        observer.unobserve(entry.target); // Only animate once for performance
+                        observer.unobserve(entry.target);
                     }
                 });
             }, observerOptions);
@@ -491,9 +684,16 @@
             document.querySelectorAll('.ie-reveal').forEach(el => {
                 observer.observe(el);
             });
+
+            // Check existing auth
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('authContainer').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+            }
         });
 
-        // 2. Subtle Parallax Effect on Mouse Move (Premium Feel)
+        // Parallax effect
         document.addEventListener('mousemove', (e) => {
             const rings = document.querySelectorAll('.ie-engine-ring');
             const x = (window.innerWidth - e.pageX * 2) / 100;
