@@ -3,207 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Studio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <title>Income Engine | Ultra-Premium Brand Template</title>
     
-    <!-- AUTHENTICATION SCREEN -->
-    <div id="authContainer" class="max-w-md w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
-        <h1 class="text-3xl font-bold text-indigo-400 mb-6 text-center">NexusAI</h1>
-        
-        <div class="flex mb-6 bg-gray-700 rounded-lg p-1">
-            <button onclick="showLogin()" id="loginTab" class="flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition">Login</button>
-            <button onclick="showSignup()" id="signupTab" class="flex-1 py-2 rounded-md text-gray-400 font-medium transition">Sign Up</button>
-        </div>
+    <!-- Premium Font Loading with Display Swap for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
-            <div id="nameField" class="hidden">
-                <label class="block text-sm text-gray-400 mb-1">Full Name</label>
-                <input type="text" id="fullName" class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Email</label>
-                <input type="email" id="email" required class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Password</label>
-                <input type="password" id="password" required class="w-full bg-gray-700 rounded p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none">
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition">Submit</button>
-        </form>
-        <div id="authError" class="hidden mt-4 p-3 bg-red-900/50 text-red-200 rounded text-sm text-center"></div>
-    </div>
+    <style>
+        /* ==========================================================================
+           INCOME ENGINE: ULTRA-PREMIUM DESIGN SYSTEM (Googol-Plex Tier)
+           ========================================================================== */
+        :root {
+            /* Brand Palette */
+            --ie-gold: #D4AF37;
+            --ie-gold-light: #F4D03F;
+            --ie-gold-dim: rgba(212, 175, 55, 0.15);
+            --ie-blue: #00C4FF;
+            --ie-blue-glow: rgba(0, 196, 255, 0.4);
+            --ie-bg-deep: #0a0f10;
+            --ie-bg-card: rgba(20, 30, 32, 0.4);
+            
+            /* Advanced Spacing & Layout */
+            --ie-radius-sm: 8px;
+            --ie-radius-md: 16px;
+            --ie-radius-lg: 24px;
+            --ie-container-max: 1200px;
+            
+            /* Fluid Typography (Scales perfectly from mobile to 4K) */
+            --ie-text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+            --ie-text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+            --ie-text-lg: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+            --ie-text-xl: clamp(1.5rem, 1.3rem + 1vw, 2.25rem);
+            --ie-text-2xl: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+            --ie-text-3xl: clamp(2.5rem, 2rem + 3vw, 5rem);
 
-    <!-- APP SCREEN (Hidden until logged in) -->
-    <div id="appContainer" class="hidden max-w-xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-indigo-400">AI Video Studio</h1>
-            <button onclick="logout()" class="text-sm text-gray-400 hover:text-white">Logout</button>
-        </div>
+            /* Animation Curves (Apple-style smooth easing) */
+            --ie-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+            --ie-ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* ==========================================================================
+           GLOBAL RESET & BASE
+           ========================================================================== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-color: var(--ie-bg-deep);
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
+            line-height: 1.7;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ==========================================================================
+           CINEMATIC BACKGROUND SYSTEM (Noise + Mesh Gradients)
+           ========================================================================== */
+        .ie-cinematic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(0, 196, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0f10 0%, #121a1b 50%, #000000 100%);
+        }
+
+        /* Film Grain Overlay for Premium Tactile Feel (Prevents color banding) */
+        .ie-noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Abstract Engine Rings (Modern, high-tech alternative to cartoon gears) */
+        .ie-engine-ring {
+            position: absolute;
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ie-ring-1 { width: 600px; height: 600px; top: -200px; right: -200px; animation: ie-spin 60s linear infinite; border-top-color: var(--ie-gold); }
+        .ie-ring-2 { width: 400px; height: 400px; bottom: -100px; left: -100px; animation: ie-spin 45s linear infinite reverse; border-bottom-color: var(--ie-blue); }
+        .ie-ring-3 { width: 800px; height: 800px; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 1px dashed rgba(255,255,255,0.03); animation: ie-spin 120s linear infinite; }
+
+        @keyframes ie-spin { to { transform: rotate(360deg); } }
+        @keyframes ie-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        /* ==========================================================================
+           LAYOUT & CONTAINERS
+           ========================================================================== */
+        .ie-container {
+            width: 100%;
+            max-width: var(--ie-container-max);
+            margin: 0 auto;
+            padding: clamp(2rem, 5vw, 5rem) clamp(1rem, 3vw, 2rem);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ==========================================================================
+           ADVANCED TYPOGRAPHY
+           ========================================================================== */
+        .ie-title-main {
+            font-family: 'Montserrat', sans-serif;
+            font-size: var(--ie-text-3xl);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            text-align: center;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            /* Premium Gold Gradient Text */
+            background: linear-gradient(135deg, var(--ie-gold-light) 0%, var(--ie-gold) 50%, #B8941F 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.3));
+        }
+
+        .ie-title-sub {
+            font-family: 'Poppins', sans-serif;
+            font-size: var(--ie-text-xl);
+            font-weight: 500;
+            color: var(--ie-blue);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 3rem auto;
+            text-shadow: 0 0 20px var(--ie-blue-glow);
+        }
+
+        .ie-title-section {
+            font-family: 'Montserrat', sans-serif;
+            font-size: var(--ie-text-lg);
+            font-weight: 700;
+            color: var(--ie-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ie-text-body {
+            font-size: var(--ie-text-base);
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 1.5rem;
+        }
+
+        .ie-text-highlight {
+            color: var(--ie-blue);
+            font-weight: 600;
+        }
+
+        .ie-divider {
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--ie-gold), transparent);
+            margin: 0 auto 3rem auto;
+            border-radius: 2px;
+            box-shadow: 0 0 15px var(--ie-gold);
+        }
+
+        /* ==========================================================================
+           GLASSMORPHISM 2.0 CARDS
+           ========================================================================== */
+        .ie-card {
+            background: var(--ie-bg-card);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15); /* Top highlight */
+            border-radius: var(--ie-radius-md);
+            padding: clamp(1.5rem, 3vw, 2.5rem);
+            margin-bottom: 2rem;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 0.4s var(--ie-ease-out), box-shadow 0.4s var(--ie-ease-out);
+        }
+
+        .ie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.5),
+                0 0 30px var(--ie-gold-dim),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        /* ==========================================================================
+           PREMIUM BUTTONS (With Shine Effect)
+           ========================================================================== */
+        .ie-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 1rem 2.5rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: var(--ie-text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border: none;
+            border-radius: var(--ie-radius-sm);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s var(--ie-ease-out);
+            text-decoration: none;
+        }
+
+        .ie-btn-primary {
+            background: linear-gradient(135deg, var(--ie-gold) 0%, #B8941F 100%);
+            color: #000;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .ie-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.5);
+        }
+
+        .ie-btn-secondary {
+            background: transparent;
+            color: var(--ie-blue);
+            border: 1px solid rgba(0, 196, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 196, 255, 0.1);
+        }
+
+        .ie-btn-secondary:hover {
+            background: rgba(0, 196, 255, 0.1);
+            border-color: var(--ie-blue);
+            box-shadow: 0 0 30px rgba(0, 196, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        /* Button Shine Animation */
+        .ie-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.6s var(--ie-ease-out);
+        }
+        .ie-btn:hover::before {
+            left: 100%;
+        }
+
+        /* ==========================================================================
+           ADVANCED LISTS & FEATURES
+           ========================================================================== */
+        .ie-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .ie-feature-item {
+            text-align: center;
+            padding: 2rem;
+            border-radius: var(--ie-radius-md);
+            background: rgba(0, 196, 255, 0.03);
+            border: 1px solid rgba(0, 196, 255, 0.1);
+            transition: all 0.4s var(--ie-ease-out);
+        }
+
+        .ie-feature-item:hover {
+            background: rgba(0, 196, 255, 0.08);
+            border-color: rgba(0, 196, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .ie-feature-icon {
+            font-size: 2.5rem;
+            color: var(--ie-gold);
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: ie-float 6s ease-in-out infinite;
+            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
+        }
+
+        .ie-check-list {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .ie-check-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            font-size: var(--ie-text-base);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .ie-check-list i {
+            color: var(--ie-blue);
+            font-size: 1.2rem;
+            margin-top: 4px;
+            filter: drop-shadow(0 0 8px var(--ie-blue-glow));
+        }
+
+        /* ==========================================================================
+           SCROLL REVEAL ANIMATIONS
+           ========================================================================== */
+        .ie-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            filter: blur(10px);
+            transition: opacity 0.8s var(--ie-ease-out), transform 0.8s var(--ie-ease-out), filter 0.8s var(--ie-ease-out);
+        }
+
+        .ie-reveal.ie-active {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+        }
+
+        /* Stagger children */
+        .ie-stagger-1 { transition-delay: 0.1s; }
+        .ie-stagger-2 { transition-delay: 0.2s; }
+        .ie-stagger-3 { transition-delay: 0.3s; }
+
+        /* ==========================================================================
+           RESPONSIVE ADJUSTMENTS
+           ========================================================================== */
+        @media (max-width: 768px) {
+            .ie-feature-grid { grid-template-columns: 1fr; }
+            .ie-btn { width: 100%; margin-bottom: 1rem; }
+            .ie-ring-1, .ie-ring-2 { display: none; } /* Hide heavy animations on mobile for performance */
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CINEMATIC BACKGROUND LAYERS -->
+    <div class="ie-cinematic-bg"></div>
+    <div class="ie-noise-overlay"></div>
+    <div class="ie-engine-ring ie-ring-1"></div>
+    <div class="ie-engine-ring ie-ring-2"></div>
+    <div class="ie-engine-ring ie-ring-3"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="ie-container">
         
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm text-gray-400 mb-2">Upload PDF Presentation</label>
-                <input type="file" id="pdfFile" accept=".pdf" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+        <!-- ===== HERO SECTION ===== -->
+        <header class="ie-reveal" style="text-align: center; padding-top: 4rem;">
+            <div class="ie-title-main">The Income Engine</div>
+            <div class="ie-divider"></div>
+            <div class="ie-title-sub">Architect Your Wealth. Automate Your Freedom. Scale Without Limits.</div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+                <a href="#features" class="ie-btn ie-btn-primary">
+                    <i class="fas fa-rocket"></i> Initialize Engine
+                </a>
+                <a href="#community" class="ie-btn ie-btn-secondary">
+                    <i class="fas fa-users"></i> Join Community
+                </a>
+            </div>
+        </header>
+
+        <!-- ===== FEATURES GRID ===== -->
+        <section id="features" class="ie-feature-grid">
+            <div class="ie-feature-item ie-reveal ie-stagger-1">
+                <div class="ie-feature-icon"><i class="fas fa-bolt"></i></div>
+                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Rapid Deployment</h3>
+                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Launch high-converting funnels in hours, not months. Our proven frameworks eliminate guesswork.</p>
             </div>
             
-            <div>
-                <label class="block text-sm text-gray-400 mb-1">Language</label>
-                <select id="language" class="w-full bg-gray-700 text-white rounded-lg p-3 border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="en">English</option>
-                    <option value="ar">Arabic</option>
-                </select>
+            <div class="ie-feature-item ie-reveal ie-stagger-2">
+                <div class="ie-feature-icon"><i class="fas fa-chart-line"></i></div>
+                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Compound Growth</h3>
+                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Systems designed to scale exponentially. Turn one-time buyers into lifetime subscribers.</p>
             </div>
             
-            <div class="border-t border-gray-700 pt-4 space-y-4">
-                <h3 class="text-sm font-medium text-gray-300">🔑 Cartesia API Credentials</h3>
-                
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">API Key</label>
-                    <input type="password" id="cartesiaApiKey" 
-                           placeholder="sk_live_..." 
-                           class="w-full bg-gray-700 rounded p-2 text-sm border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500"
-                           oninput="this.value = this.value.trim()">
+            <div class="ie-feature-item ie-reveal ie-stagger-3">
+                <div class="ie-feature-icon"><i class="fas fa-shield-alt"></i></div>
+                <h3 class="ie-title-section" style="justify-content: center; font-size: 1.25rem;">Elite Security</h3>
+                <p class="ie-text-body" style="font-size: 0.95rem; margin: 0;">Enterprise-grade infrastructure protecting your data, your revenue, and your reputation.</p>
+            </div>
+        </section>
+
+        <!-- ===== DEEP DIVE CARD ===== -->
+        <section class="ie-reveal">
+            <div class="ie-card">
+                <div class="ie-title-section">
+                    <i class="fas fa-cogs" style="color: var(--ie-blue);"></i>
+                    Core Architecture
                 </div>
+                <p class="ie-text-body">
+                    The Income Engine isn't just a course; it's a <span class="ie-text-highlight">complete operational overhaul</span> of how you generate revenue. We replace outdated, manual processes with sleek, automated pipelines.
+                </p>
                 
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">Voice ID</label>
-                    <input type="text" id="cartesiaVoiceId" 
-                           value="2a1938fe-6a4c-4fa0-86a7-dd585a5f7211" 
-                           class="w-full bg-gray-700 rounded p-2 text-sm border border-gray-600 outline-none focus:ring-2 focus:ring-indigo-500"
-                           oninput="this.value = this.value.trim()">
+                <ul class="ie-check-list">
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span><strong>Plug-and-Play Templates:</strong> Deploy proven copy and design frameworks instantly.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span><strong>AI-Powered Optimization:</strong> Let machine learning refine your conversion rates 24/7.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-check-circle"></i>
+                        <span><strong>Elite Mastermind Access:</strong> Network with 7-figure operators who are actively scaling.</span>
+                    </li>
+                </ul>
+
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <button class="ie-btn ie-btn-primary" style="min-width: 250px;">
+                        Activate Full Access <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
+        </section>
 
-            <button onclick="generateVideo()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition mt-6">
-                Generate Video
-            </button>
-        </div>
-        
-        <div id="appStatus" class="hidden mt-4 text-center text-gray-300"></div>
-        <div id="appError" class="hidden mt-4 p-3 bg-red-900/50 text-red-200 rounded text-sm text-center"></div>
-    </div>
+        <!-- ===== FOOTER / KEYWORDS ===== -->
+        <footer class="ie-reveal" style="text-align: center; padding: 3rem 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 4rem;">
+            <p style="font-size: var(--ie-text-xs); color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase;">
+                Income Engine &copy; 2024. All Systems Operational.
+            </p>
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: rgba(255,255,255,0.2);">
+                Premium Branding | High-Ticket Funnels | Automated Wealth
+            </div>
+        </footer>
 
+    </main>
+
+    <!-- ==========================================================================
+         ADVANCED INTERACTION SCRIPTS
+         ========================================================================== -->
     <script>
-        let isLogin = true;
-        
-        function showLogin() { 
-            isLogin = true; 
-            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition'; 
-            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium transition'; 
-            document.getElementById('nameField').classList.add('hidden'); 
-            document.getElementById('authError').classList.add('hidden');
-        }
-        
-        function showSignup() { 
-            isLogin = false; 
-            document.getElementById('signupTab').className = 'flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium transition'; 
-            document.getElementById('loginTab').className = 'flex-1 py-2 rounded-md text-gray-400 font-medium transition'; 
-            document.getElementById('nameField').classList.remove('hidden'); 
-            document.getElementById('authError').classList.add('hidden');
-        }
-
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const url = isLogin ? '/login' : '/signup';
-            const body = isLogin ? { email, password } : { 
-                email, 
-                password, 
-                full_name: document.getElementById('fullName').value.trim() 
+        // 1. Intersection Observer for Scroll-Triggered Reveals (Hardware Accelerated)
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
             };
-            
-            try {
-                const res = await fetch(url, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(body) 
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('ie-active');
+                        observer.unobserve(entry.target); // Only animate once for performance
+                    }
                 });
-                const data = await res.json();
-                
-                if (!res.ok) throw new Error(data.detail || 'Authentication failed');
-                
-                if (isLogin) {
-                    localStorage.setItem('token', data.access_token);
-                    localStorage.setItem('userId', data.user_id);
-                }
-                
-                document.getElementById('authContainer').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-                document.getElementById('authError').classList.add('hidden');
-            } catch (err) {
-                const errEl = document.getElementById('authError');
-                errEl.innerText = err.message;
-                errEl.classList.remove('hidden');
-            }
-        }
+            }, observerOptions);
 
-        function logout() { 
-            localStorage.removeItem('token'); 
-            localStorage.removeItem('userId');
-            location.reload(); 
-        }
+            document.querySelectorAll('.ie-reveal').forEach(el => {
+                observer.observe(el);
+            });
+        });
 
-        async function generateVideo() {
-            const fileInput = document.getElementById('pdfFile');
-            const apiKey = document.getElementById('cartesiaApiKey').value.trim();
-            const voiceId = document.getElementById('cartesiaVoiceId').value.trim();
-            
-            if (!fileInput.files[0]) { 
-                alert('Please select a PDF file'); 
-                return; 
-            }
-            
-            if (!apiKey) { 
-                alert('Please enter your Cartesia API key'); 
-                return; 
-            }
-            
-            const statusEl = document.getElementById('appStatus');
-            const errorEl = document.getElementById('appError');
-            
-            statusEl.innerText = 'Starting video generation...';
-            statusEl.classList.remove('hidden');
-            errorEl.classList.add('hidden');
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('language', document.getElementById('language').value);
-            formData.append('cartesia_api_key', apiKey);
-            formData.append('cartesia_voice_id', voiceId);
+        // 2. Subtle Parallax Effect on Mouse Move (Premium Feel)
+        document.addEventListener('mousemove', (e) => {
+            const rings = document.querySelectorAll('.ie-engine-ring');
+            const x = (window.innerWidth - e.pageX * 2) / 100;
+            const y = (window.innerHeight - e.pageY * 2) / 100;
 
-            try {
-                const res = await fetch('/upload', { method: 'POST', body: formData });
-                
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.detail || 'Generation failed');
-                }
-                
-                const data = await res.json();
-                statusEl.innerText = '✅ Success! Video is being generated. Job ID: ' + data.job_id;
-                
-                // Clear the form
-                fileInput.value = '';
-                document.getElementById('cartesiaApiKey').value = '';
-                
-            } catch (err) {
-                errorEl.innerText = 'Error: ' + err.message;
-                errorEl.classList.remove('hidden');
-                statusEl.classList.add('hidden');
-            }
-        }
-
-        // Check if user is already logged in
-        window.onload = function() {
-            const token = localStorage.getItem('token');
-            if (token) {
-                document.getElementById('authContainer').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-            }
-        }
+            rings.forEach((ring, index) => {
+                const speed = (index + 1) * 0.5;
+                ring.style.transform = `translate(${x * speed}px, ${y * speed}px) rotate(${index * 120}deg)`;
+            });
+        });
     </script>
 </body>
 </html>
