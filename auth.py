@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from supabase_client import supabase, supabase_admin
+import requests
+import os
 
 router = APIRouter()
 
@@ -134,9 +136,29 @@ async def change_password(data: dict):
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
     try:
-        # Use the ADMIN client (service_role key) for privileged operations
-        supabase_admin.auth.admin.update_user_by_id(user_id, {"password": new_password})
+        # Use direct REST API call with service role key
+        supabase_url = os.getenv("SUPABASE_URL")
+        service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        
+        headers = {
+            "apikey": service_role_key,
+            "Authorization": f"Bearer {service_role_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        
+        # Call Supabase Auth Admin API directly
+        response = requests.put(
+            f"{supabase_url}/auth/v1/admin/users/{user_id}",
+            headers=headers,
+            json={"password": new_password}
+        )
+        
+        if response.status_code != 200:
+            raise Exception(f"Supabase API error: {response.text}")
+        
         return {"message": "Password updated successfully"}
+        
     except Exception as e:
         print(f"Error changing password: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update password: {str(e)}")
