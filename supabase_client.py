@@ -3,13 +3,12 @@ import os
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_KEY)
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError("Missing Supabase credentials. Check your Railway environment variables.")
+# Regular client for normal operations
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    print("✅ Supabase client initialized successfully")
-except Exception as e:
-    print(f"❌ Supabase connection error: {e}")
-    raise
+# Admin client for privileged operations (like changing passwords)
+supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+print("✅ Supabase client initialized successfully")
