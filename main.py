@@ -98,12 +98,13 @@ async def upload_pdf(
         
         output_video = f"{output_folder}/final_video.mp4"
         background_tasks.add_task(
-            pipeline_video.render_from_scripts,
+            render_and_update_status,
             output_folder,
             output_video,
             language,
             api_key=api_key,
-            voice_id=cartesia_voice_id.strip()
+            voice_id=cartesia_voice_id.strip(),
+            job_id=job_id
         )
         
         return JSONResponse({
@@ -120,6 +121,30 @@ async def upload_pdf(
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+async def render_and_update_status(output_folder, output_video, language, api_key, voice_id, job_id):
+    """Render video and update status to completed when done"""
+    try:
+        # Render the video
+        pipeline_video.render_from_scripts(output_folder, output_video, language, api_key=api_key, voice_id=voice_id)
+        
+        # Update status to completed in database
+        if os.path.exists(output_video):
+            try:
+                supabase.table("videos").update({
+                    "status": "completed"
+                }).eq("job_id", job_id).execute()
+                log(f"Job {job_id} marked as completed")
+            except Exception as db_error:
+                print(f"Error updating status: {db_error}")
+    except Exception as e:
+        log(f"Error in background task: {e}")
+        try:
+            supabase.table("videos").update({
+                "status": "failed"
+            }).eq("job_id", job_id).execute()
+        except:
+            pass
 
 @app.get("/download/{job_id}/final_video.mp4")
 async def download_video(job_id: str):
@@ -143,10 +168,10 @@ async def get_video_status(job_id: str):
 @app.delete("/video/{job_id}")
 async def delete_video(job_id: str, user_id: str):
     try:
-        # 1. Delete from database
+        # Delete from database
         supabase.table("videos").delete().eq("job_id", job_id).eq("user_id", user_id).execute()
         
-        # 2. Delete files from server
+        # Delete files from server
         folder_path = f"{OUTPUT_DIR}/{job_id}"
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
